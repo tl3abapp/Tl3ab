@@ -30,6 +30,7 @@ Use these env vars on Render:
 - `DATABASE_URL` -> Neon connection string
 - `DB_SSL=true`
 - `DB_SYNC=true` (MVP only)
+- `API_PREFIX=api` (required when this service also hosts the Flutter web app)
 - `DB_DRIVER` should be empty (or unset)
 - `DB_LOCAL_PERSIST` can be ignored on Render when using Neon
 - `PORT` provided by Render automatically
@@ -50,6 +51,21 @@ After Render is live, build the Flutter web app with the Render API URL:
 
 ```bash
 flutter build web --dart-define=PADEL_API_URL=https://your-api.onrender.com
+```
+
+### Single Render Web Service
+
+This repo can also deploy the API and Flutter web app as one Render Web Service.
+The compiled Flutter files live in `public/`, and the backend serves them from `/`.
+With `API_PREFIX=api`, API routes are available under `/api`, so the Flutter web
+build can use same-origin requests automatically.
+
+Render settings:
+
+```bash
+Build Command: npm ci && npm run build
+Start Command: npm run start:prod
+Health Check Path: /api/health
 ```
 
 ## Main Endpoints (MVP)
