@@ -3,9 +3,15 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  type ColumnType,
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+
+const dateTimeColumnType: ColumnType =
+  process.env.DB_DRIVER?.toLowerCase() === 'sqljs' || !process.env.DATABASE_URL
+    ? 'datetime'
+    : 'timestamptz';
 
 export enum ParticipantStatus {
   Invited = 'invited',
@@ -55,10 +61,10 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 16, default: 'active' })
   accountStatus!: 'active' | 'deactivated';
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: dateTimeColumnType, nullable: true })
   deactivatedAt!: Date | null;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: dateTimeColumnType, nullable: true })
   deleteScheduledAt!: Date | null;
 
   @CreateDateColumn()
@@ -122,7 +128,7 @@ export class MatchEntity {
   @Column({ length: 120 })
   courtName!: string;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: dateTimeColumnType })
   startsAt!: Date;
 
   @Column({ type: 'boolean', default: false })
