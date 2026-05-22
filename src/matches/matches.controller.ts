@@ -23,8 +23,9 @@ export class MatchesController {
   list(
     @Query('area') area?: string,
     @Query('privateOnly') privateOnly?: string,
+    @Query('userId') userId?: string,
   ) {
-    return this.matchesService.list(area, privateOnly === 'true');
+    return this.matchesService.list(area, privateOnly === 'true', userId);
   }
 
   @Get(':id')

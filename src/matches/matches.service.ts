@@ -17,6 +17,17 @@ import { JoinMatchDto } from './dto/join-match.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { randomBytes } from 'crypto';
 
+type MatchParticipantView = MatchParticipantEntity & {
+  userName: string;
+  userHandle: string;
+};
+
+type MatchView = MatchEntity & {
+  hostName: string;
+  hostHandle: string;
+  participants: MatchParticipantView[];
+};
+
 @Injectable()
 export class MatchesService {
   constructor(
@@ -32,13 +43,8 @@ export class MatchesService {
   async list(
     area?: string,
     privateOnly?: boolean,
-  ): Promise<
-    Array<
-      MatchEntity & {
-        participants: MatchParticipantEntity[];
-      }
-    >
-  > {
+    userId?: string,
+  ): Promise<MatchView[]> {
     const matches = await this.matchesRepo.find({
       where: {
         ...(area ? { area } : {}),
@@ -55,16 +61,35 @@ export class MatchesService {
         })
       : [];
 
-    return matches.map((match) =>
-      Object.assign(match, {
-        participants: participants.filter((row) => row.matchId === match.id),
-      }),
-    );
+    const userIds = new Set<string>();
+    for (const match of matches) {
+      userIds.add(match.hostId);
+    }
+    for (const participant of participants) {
+      userIds.add(participant.userId);
+    }
+
+    const users = userIds.size
+      ? await this.usersRepo.findBy({ id: In([...userIds]) })
+      : [];
+    const userById = new Map(users.map((user) => [user.id, user]));
+
+    return matches
+      .map((match) => {
+        const matchParticipants = participants.filter(
+          (row) => row.matchId === match.id,
+        );
+        if (!this.canUserSeeMatch(match, matchParticipants, userId)) {
+          return null;
+        }
+
+        return this.toMatchView(match, matchParticipants, userById);
+      })
+      .filter((match): match is MatchView => match !== null);
   }
 
   async details(matchId: string): Promise<{
-    match: MatchEntity;
-    participants: MatchParticipantEntity[];
+    match: MatchView;
   }> {
     const match = await this.matchesRepo.findOne({ where: { id: matchId } });
     if (!match) {
@@ -76,7 +101,17 @@ export class MatchesService {
       order: { createdAt: 'ASC' },
     });
 
-    return { match, participants };
+    const users = await this.usersRepo.findBy({
+      id: In([match.hostId, ...participants.map((row) => row.userId)]),
+    });
+
+    return {
+      match: this.toMatchView(
+        match,
+        participants,
+        new Map(users.map((user) => [user.id, user])),
+      ),
+    };
   }
 
   async create(dto: CreateMatchDto): Promise<MatchEntity> {
@@ -475,5 +510,48 @@ export class MatchesService {
 
   private buildInviteCode(): string {
     return randomBytes(4).toString('hex').toUpperCase().slice(0, 6);
+  }
+
+  private canUserSeeMatch(
+    match: MatchEntity,
+    participants: MatchParticipantEntity[],
+    userId?: string,
+  ): boolean {
+    if (!match.isPrivate) {
+      return true;
+    }
+    if (!userId) {
+      return false;
+    }
+    if (match.hostId === userId) {
+      return true;
+    }
+
+    return participants.some(
+      (participant) =>
+        participant.userId === userId &&
+        participant.status !== ParticipantStatus.Rejected &&
+        participant.status !== ParticipantStatus.Left,
+    );
+  }
+
+  private toMatchView(
+    match: MatchEntity,
+    participants: MatchParticipantEntity[],
+    userById: Map<string, UserEntity>,
+  ): MatchView {
+    const host = userById.get(match.hostId);
+
+    return Object.assign(match, {
+      hostName: host?.name ?? 'Host',
+      hostHandle: host?.handle ?? 'host',
+      participants: participants.map((participant) => {
+        const user = userById.get(participant.userId);
+        return Object.assign(participant, {
+          userName: user?.name ?? 'Player',
+          userHandle: user?.handle ?? 'player',
+        });
+      }),
+    });
   }
 }
