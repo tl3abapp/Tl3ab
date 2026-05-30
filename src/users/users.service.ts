@@ -61,6 +61,11 @@ export class UsersService {
       throw new BadRequestException('Phone number already exists');
     }
 
+    const password = dto.password.trim();
+    if (password.length < 6) {
+      throw new BadRequestException('Password must be at least 6 characters');
+    }
+
     const user = this.usersRepo.create({
       name: dto.name.trim(),
       handle,
@@ -68,7 +73,7 @@ export class UsersService {
       phoneNumber,
       birthDate: birthDate.toISOString().slice(0, 10),
       photoData: dto.photoData?.trim() || null,
-      passwordHash: hashPassword(dto.password),
+      passwordHash: hashPassword(password),
       skillLevel: dto.skillLevel ?? 5,
       area: dto.area?.trim() ?? null,
       avatarColor: dto.avatarColor ?? '#0A6C4D',
@@ -100,13 +105,18 @@ export class UsersService {
   }
 
   async login(dto: LoginUserDto): Promise<UserEntity> {
-    const email = dto.email.trim().toLowerCase();
-    const password = dto.password;
+    const loginId = dto.email.trim();
+    const normalizedLoginId = loginId.toLowerCase();
+    const normalizedPhone = loginId.replace(/\D/g, '');
+    const password = dto.password.trim();
 
     const user = await this.usersRepo
       .createQueryBuilder('user')
       .addSelect('user.passwordHash')
-      .where('user.email = :email', { email })
+      .where(
+        'user.email = :normalizedLoginId OR user.handle = :normalizedLoginId OR user.phoneNumber = :loginId OR user.phoneNumber = :normalizedPhone',
+        { normalizedLoginId, loginId, normalizedPhone },
+      )
       .getOne();
 
     if (!user || !verifyPassword(password, user.passwordHash)) {
