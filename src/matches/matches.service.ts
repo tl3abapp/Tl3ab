@@ -20,11 +20,13 @@ import { randomBytes } from 'crypto';
 type MatchParticipantView = MatchParticipantEntity & {
   userName: string;
   userHandle: string;
+  userPhotoData: string | null;
 };
 
 type MatchView = MatchEntity & {
   hostName: string;
   hostHandle: string;
+  hostPhotoData: string | null;
   participants: MatchParticipantView[];
 };
 
@@ -545,11 +547,13 @@ export class MatchesService {
     return Object.assign(match, {
       hostName: host?.name ?? 'Host',
       hostHandle: host?.handle ?? 'host',
+      hostPhotoData: host?.photoData ?? null,
       participants: participants.map((participant) => {
         const user = userById.get(participant.userId);
         return Object.assign(participant, {
           userName: user?.name ?? 'Player',
           userHandle: user?.handle ?? 'player',
+          userPhotoData: user?.photoData ?? null,
         });
       }),
     });
