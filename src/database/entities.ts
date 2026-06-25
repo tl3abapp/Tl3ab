@@ -23,6 +23,11 @@ export enum ParticipantStatus {
   Left = 'left',
 }
 
+export enum MatchSide {
+  Left = 'left',
+  Right = 'right',
+}
+
 export enum ChatThreadType {
   Direct = 'direct',
   Match = 'match',
@@ -185,6 +190,13 @@ export class MatchParticipantEntity {
     default: ParticipantStatus.Pending,
   })
   status!: ParticipantStatus;
+
+  @Column({
+    type: 'simple-enum',
+    enum: MatchSide,
+    nullable: true,
+  })
+  side!: MatchSide | null;
 
   @CreateDateColumn()
   createdAt!: Date;

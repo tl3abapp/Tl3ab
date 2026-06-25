@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class JoinMatchDto {
   @IsUUID()
@@ -7,4 +7,8 @@ export class JoinMatchDto {
   @IsString()
   @IsOptional()
   inviteCode?: string;
+
+  @IsIn(['left', 'right'])
+  @IsOptional()
+  side?: 'left' | 'right';
 }

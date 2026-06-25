@@ -59,4 +59,8 @@ export class CreateMatchDto {
   @IsIn(['public', 'friends', 'circle', 'selected'])
   @IsOptional()
   targetScope?: 'public' | 'friends' | 'circle' | 'selected';
+
+  @IsIn(['left', 'right'])
+  @IsOptional()
+  hostSide?: 'left' | 'right';
 }

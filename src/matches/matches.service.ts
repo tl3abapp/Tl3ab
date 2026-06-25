@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import {
   MatchEntity,
+  MatchSide,
   MatchParticipantEntity,
   ParticipantStatus,
   UserEntity,
@@ -157,6 +158,7 @@ export class MatchesService {
         matchId: created.id,
         userId: dto.hostId,
         status: ParticipantStatus.Accepted,
+        side: this.normalizeSide(dto.hostSide),
       }),
     );
 
@@ -259,12 +261,17 @@ export class MatchesService {
       return { status: existing.status };
     }
 
+    const selectedSide = this.normalizeSide(dto.side);
     const hasSpot = match.joinedPlayers < match.maxPlayers;
+    const hasSideSpot =
+      !selectedSide || (await this.hasSideSpot(matchId, selectedSide));
     const nextStatus = !hasSpot
       ? ParticipantStatus.Full
-      : match.targetScope === 'public'
-        ? ParticipantStatus.Pending
-        : ParticipantStatus.Accepted;
+      : !hasSideSpot
+        ? ParticipantStatus.Full
+        : match.targetScope === 'public'
+          ? ParticipantStatus.Pending
+          : ParticipantStatus.Accepted;
 
     if (!existing) {
       await this.participantsRepo.save(
@@ -272,10 +279,12 @@ export class MatchesService {
           matchId,
           userId: dto.userId,
           status: nextStatus,
+          side: selectedSide,
         }),
       );
     } else {
       existing.status = nextStatus;
+      existing.side = selectedSide ?? existing.side;
       await this.participantsRepo.save(existing);
     }
 
@@ -326,6 +335,7 @@ export class MatchesService {
     }
 
     participant.status = ParticipantStatus.Left;
+    participant.side = null;
     await this.participantsRepo.save(participant);
 
     return { ok: true };
@@ -397,6 +407,15 @@ export class MatchesService {
     );
 
     if (match.joinedPlayers >= match.maxPlayers) {
+      participant.status = ParticipantStatus.Full;
+      await this.participantsRepo.save(participant);
+      return { ok: true };
+    }
+
+    if (
+      participant.side &&
+      !(await this.hasSideSpot(matchId, participant.side))
+    ) {
       participant.status = ParticipantStatus.Full;
       await this.participantsRepo.save(participant);
       return { ok: true };
@@ -557,5 +576,26 @@ export class MatchesService {
         });
       }),
     });
+  }
+
+  private normalizeSide(side?: string): MatchSide | null {
+    if (side === MatchSide.Left || side === MatchSide.Right) {
+      return side;
+    }
+    return null;
+  }
+
+  private async hasSideSpot(
+    matchId: string,
+    side: MatchSide,
+  ): Promise<boolean> {
+    const sidePlayers = await this.participantsRepo.count({
+      where: {
+        matchId,
+        side,
+        status: ParticipantStatus.Accepted,
+      },
+    });
+    return sidePlayers < 2;
   }
 }
