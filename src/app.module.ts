@@ -5,6 +5,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ChatsModule } from './chats/chats.module';
 import { databaseEntities } from './database/entities';
 import { MatchesModule } from './matches/matches.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -65,6 +66,7 @@ import { UsersModule } from './users/users.module';
     PostsModule,
     NotificationsModule,
     MatchesModule,
+    ChatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

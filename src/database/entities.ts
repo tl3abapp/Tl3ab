@@ -23,6 +23,11 @@ export enum ParticipantStatus {
   Left = 'left',
 }
 
+export enum ChatThreadType {
+  Direct = 'direct',
+  Match = 'match',
+}
+
 @Entity('users')
 export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -215,6 +220,68 @@ export class NotificationEntity {
   createdAt!: Date;
 }
 
+@Entity('chat_threads')
+export class ChatThreadEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({
+    type: 'simple-enum',
+    enum: ChatThreadType,
+    default: ChatThreadType.Direct,
+  })
+  type!: ChatThreadType;
+
+  @Column({ length: 120 })
+  title!: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  matchId!: string | null;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
+}
+
+@Entity('chat_members')
+@Unique(['threadId', 'userId'])
+export class ChatMemberEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ type: 'uuid' })
+  threadId!: string;
+
+  @Column({ type: 'uuid' })
+  userId!: string;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+}
+
+@Entity('chat_messages')
+export class ChatMessageEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ type: 'uuid' })
+  threadId!: string;
+
+  @Column({ type: 'uuid' })
+  userId!: string;
+
+  @Column({ length: 80 })
+  senderName!: string;
+
+  @Column({ type: 'text' })
+  text!: string;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+}
+
 export const databaseEntities = [
   UserEntity,
   FollowEntity,
@@ -222,4 +289,7 @@ export const databaseEntities = [
   MatchEntity,
   MatchParticipantEntity,
   NotificationEntity,
+  ChatThreadEntity,
+  ChatMemberEntity,
+  ChatMessageEntity,
 ] as const;
