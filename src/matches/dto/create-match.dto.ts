@@ -26,6 +26,10 @@ export class CreateMatchDto {
   @IsString()
   courtName!: string;
 
+  @IsString()
+  @IsOptional()
+  courtPhotoData?: string;
+
   @IsDateString()
   startsAt!: string;
 

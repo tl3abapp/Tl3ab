@@ -132,6 +132,7 @@ export class MatchesService {
       title: dto.title.trim(),
       area: dto.area.trim(),
       courtName: dto.courtName.trim(),
+      courtPhotoData: dto.courtPhotoData?.trim() || null,
       startsAt: new Date(dto.startsAt),
       isPrivate: dto.isPrivate ?? false,
       maxPlayers: dto.maxPlayers ?? 4,

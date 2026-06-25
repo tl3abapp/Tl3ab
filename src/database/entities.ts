@@ -138,6 +138,9 @@ export class MatchEntity {
   @Column({ length: 120 })
   courtName!: string;
 
+  @Column({ type: 'text', nullable: true })
+  courtPhotoData!: string | null;
+
   @Column({ type: dateTimeColumnType })
   startsAt!: Date;
 

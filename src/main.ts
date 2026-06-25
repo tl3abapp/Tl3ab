@@ -2,12 +2,22 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import type { NextFunction, Request, Response } from 'express';
+import {
+  json,
+  urlencoded,
+  type NextFunction,
+  type Request,
+  type Response,
+} from 'express';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+  });
+  app.use(json({ limit: '6mb' }));
+  app.use(urlencoded({ extended: true, limit: '6mb' }));
   app.enableCors();
   app.useGlobalPipes(
     new ValidationPipe({
