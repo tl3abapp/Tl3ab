@@ -14,6 +14,8 @@ import { JoinMatchDto } from './dto/join-match.dto';
 import { MatchesService } from './matches.service';
 import { ModerateRequestDto } from './dto/moderate-request.dto';
 import { UpdateMatchPrivacyDto } from './dto/update-match-privacy.dto';
+import { ReplacePlayerDto } from './dto/replace-player.dto';
+import { UpdateMatchDetailsDto } from './dto/update-match-details.dto';
 
 @Controller('matches')
 export class MatchesController {
@@ -56,6 +58,16 @@ export class MatchesController {
   @Post(':id/privacy')
   updatePrivacy(@Param('id') id: string, @Body() dto: UpdateMatchPrivacyDto) {
     return this.matchesService.updatePrivacy(id, dto);
+  }
+
+  @Post(':id/details')
+  updateDetails(@Param('id') id: string, @Body() dto: UpdateMatchDetailsDto) {
+    return this.matchesService.updateDetails(id, dto);
+  }
+
+  @Post(':id/replace-player')
+  replacePlayer(@Param('id') id: string, @Body() dto: ReplacePlayerDto) {
+    return this.matchesService.replacePlayer(id, dto);
   }
 
   @Delete(':id')

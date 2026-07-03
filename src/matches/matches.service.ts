@@ -17,6 +17,8 @@ import { InvitePlayersDto } from './dto/invite-players.dto';
 import { JoinMatchDto } from './dto/join-match.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { randomBytes } from 'crypto';
+import { ReplacePlayerDto } from './dto/replace-player.dto';
+import { UpdateMatchDetailsDto } from './dto/update-match-details.dto';
 
 type MatchParticipantView = MatchParticipantEntity & {
   userName: string;
@@ -382,6 +384,148 @@ export class MatchesService {
     return saved;
   }
 
+  async updateDetails(
+    matchId: string,
+    dto: UpdateMatchDetailsDto,
+  ): Promise<MatchEntity> {
+    const match = await this.matchesRepo.findOne({ where: { id: matchId } });
+    if (!match) {
+      throw new NotFoundException('Match not found');
+    }
+    if (match.hostId !== dto.hostId) {
+      throw new BadRequestException('Only host can update this match');
+    }
+
+    const previousStart = match.startsAt;
+    let timeChanged = false;
+    if (dto.startsAt) {
+      const nextStart = new Date(dto.startsAt);
+      if (Number.isNaN(nextStart.getTime())) {
+        throw new BadRequestException('Invalid match time');
+      }
+      timeChanged = previousStart.getTime() !== nextStart.getTime();
+      match.startsAt = nextStart;
+    }
+
+    if (dto.courtName !== undefined) {
+      const cleanCourtName = dto.courtName.trim();
+      if (cleanCourtName) {
+        match.courtName = cleanCourtName;
+      }
+    }
+
+    if (dto.courtPhotoData !== undefined) {
+      const cleanPhoto = dto.courtPhotoData.trim();
+      match.courtPhotoData = cleanPhoto ? cleanPhoto : null;
+    }
+
+    const saved = await this.matchesRepo.save(match);
+
+    if (timeChanged) {
+      const participants = await this.acceptedParticipants(matchId);
+      for (const participant of participants) {
+        if (participant.userId === match.hostId) {
+          continue;
+        }
+        await this.notificationsService.create({
+          userId: participant.userId,
+          type: 'match_time_changed',
+          title: 'Match time updated',
+          body: `${match.title} is now ${saved.startsAt.toLocaleString()}`,
+          matchId,
+        });
+      }
+    }
+
+    return saved;
+  }
+
+  async replacePlayer(
+    matchId: string,
+    dto: ReplacePlayerDto,
+  ): Promise<{ ok: true }> {
+    const match = await this.matchesRepo.findOne({ where: { id: matchId } });
+    if (!match) {
+      throw new NotFoundException('Match not found');
+    }
+    if (match.hostId !== dto.hostId) {
+      throw new BadRequestException('Only host can replace players');
+    }
+    if (dto.removeUserId === match.hostId) {
+      throw new BadRequestException('Host cannot be replaced');
+    }
+    if (dto.removeUserId === dto.inviteUserId) {
+      throw new BadRequestException('Choose a different invite player');
+    }
+
+    const removeParticipant = await this.participantsRepo.findOne({
+      where: { matchId, userId: dto.removeUserId },
+    });
+    if (
+      !removeParticipant ||
+      removeParticipant.status !== ParticipantStatus.Accepted
+    ) {
+      throw new BadRequestException('Player is not joined in this match');
+    }
+
+    const inviteUser = await this.usersRepo.findOne({
+      where: { id: dto.inviteUserId },
+    });
+    if (!inviteUser) {
+      throw new BadRequestException('Invite user not found');
+    }
+
+    removeParticipant.status = ParticipantStatus.Left;
+    removeParticipant.side = null;
+    await this.participantsRepo.save(removeParticipant);
+
+    if (match.joinedPlayers > 1) {
+      match.joinedPlayers -= 1;
+      match.status = 'open';
+      await this.matchesRepo.save(match);
+    }
+
+    let inviteParticipant = await this.participantsRepo.findOne({
+      where: { matchId, userId: dto.inviteUserId },
+    });
+    const side = this.normalizeSide(dto.side);
+    if (
+      inviteParticipant &&
+      inviteParticipant.status === ParticipantStatus.Accepted
+    ) {
+      throw new BadRequestException('Invite user is already joined');
+    }
+    if (!inviteParticipant) {
+      inviteParticipant = this.participantsRepo.create({
+        matchId,
+        userId: dto.inviteUserId,
+        status: ParticipantStatus.Invited,
+        side,
+      });
+    } else {
+      inviteParticipant.status = ParticipantStatus.Invited;
+      inviteParticipant.side = side ?? inviteParticipant.side;
+    }
+    await this.participantsRepo.save(inviteParticipant);
+
+    await this.notificationsService.create({
+      userId: dto.removeUserId,
+      type: 'player_replaced',
+      title: 'Match spot changed',
+      body: `${match.title} spot was reopened by the host`,
+      matchId,
+    });
+    await this.notificationsService.create({
+      userId: dto.inviteUserId,
+      type: 'invitation',
+      title: 'Replacement invite',
+      body: `${match.title} • ${match.area}`,
+      matchId,
+    });
+
+    return { ok: true };
+  }
+
   async deleteMatch(matchId: string, hostId: string): Promise<{ ok: true }> {
     const match = await this.matchesRepo.findOne({ where: { id: matchId } });
     if (!match) {
@@ -528,6 +672,14 @@ export class MatchesService {
         await this.participantsRepo.save(row);
       }
     }
+  }
+
+  private acceptedParticipants(
+    matchId: string,
+  ): Promise<MatchParticipantEntity[]> {
+    return this.participantsRepo.find({
+      where: { matchId, status: ParticipantStatus.Accepted },
+    });
   }
 
   private buildInviteCode(): string {
