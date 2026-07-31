@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { AuthGuard } from './auth/auth.guard';
 import { ChatsModule } from './chats/chats.module';
 import { databaseEntities } from './database/entities';
 import { MatchesModule } from './matches/matches.module';
@@ -62,6 +65,7 @@ import { UsersModule } from './users/users.module';
       },
     }),
     TypeOrmModule.forFeature([...databaseEntities]),
+    AuthModule,
     UsersModule,
     PostsModule,
     NotificationsModule,
@@ -69,6 +73,12 @@ import { UsersModule } from './users/users.module';
     ChatsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+  ],
 })
 export class AppModule {}

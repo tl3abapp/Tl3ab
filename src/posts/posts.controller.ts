@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  Param,
+  Post,
+} from '@nestjs/common';
+import { CurrentUserId } from '../auth/current-user.decorator';
 import { CreatePostDto } from './dto/create-post.dto';
 import { PostsService } from './posts.service';
 
@@ -12,7 +21,8 @@ export class PostsController {
   }
 
   @Post()
-  create(@Body() dto: CreatePostDto) {
+  create(@Body() dto: CreatePostDto, @CurrentUserId() currentUserId: string) {
+    this.ensureSelf(dto.authorId, currentUserId);
     return this.postsService.create(dto);
   }
 
@@ -27,7 +37,18 @@ export class PostsController {
   }
 
   @Delete(':id')
-  deletePost(@Param('id') id: string, @Body('authorId') authorId: string) {
+  deletePost(
+    @Param('id') id: string,
+    @Body('authorId') authorId: string,
+    @CurrentUserId() currentUserId: string,
+  ) {
+    this.ensureSelf(authorId, currentUserId);
     return this.postsService.delete(id, authorId);
+  }
+
+  private ensureSelf(id: string, currentUserId: string): void {
+    if (id !== currentUserId) {
+      throw new ForbiddenException('Cannot act as another user');
+    }
   }
 }

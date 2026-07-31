@@ -45,4 +45,18 @@ export class NotificationsService {
     notification.isRead = true;
     return this.notificationsRepo.save(notification);
   }
+
+  async markReadForUser(
+    id: string,
+    userId: string,
+  ): Promise<NotificationEntity> {
+    const notification = await this.notificationsRepo.findOne({
+      where: { id, userId },
+    });
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+    notification.isRead = true;
+    return this.notificationsRepo.save(notification);
+  }
 }

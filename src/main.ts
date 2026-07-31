@@ -35,13 +35,25 @@ async function bootstrap() {
   const publicPath = join(__dirname, '..', 'public');
   const indexPath = join(publicPath, 'index.html');
   if (existsSync(indexPath)) {
+    const apiRoots = new Set([
+      'health',
+      'users',
+      'posts',
+      'notifications',
+      'matches',
+      'chats',
+    ]);
+
     app.useStaticAssets(publicPath, { index: false });
 
     const server = app.getHttpAdapter().getInstance();
     server.get(/.*/, (req: Request, res: Response, next: NextFunction) => {
+      const firstPathSegment = req.path.split('/').filter(Boolean)[0];
       if (
-        apiPrefix &&
-        (req.path === `/${apiPrefix}` || req.path.startsWith(`/${apiPrefix}/`))
+        apiRoots.has(firstPathSegment) ||
+        (apiPrefix &&
+          (req.path === `/${apiPrefix}` ||
+            req.path.startsWith(`/${apiPrefix}/`)))
       ) {
         return next();
       }
