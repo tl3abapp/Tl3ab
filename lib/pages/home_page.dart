@@ -1,0 +1,1188 @@
+import 'package:flutter/material.dart';
+import 'package:padel_connect/pages/chat_thread_page.dart';
+import 'package:padel_connect/pages/create_game_page.dart';
+import 'package:padel_connect/theme/app_theme.dart';
+import 'package:padel_connect/widgets/brand_logo.dart';
+import 'package:padel_connect/widgets/court_photo.dart';
+import 'package:padel_connect/widgets/game_card.dart';
+import 'package:padel_connect/widgets/user_avatar.dart';
+import 'package:share_plus/share_plus.dart';
+
+class HomePage extends StatefulWidget {
+  const HomePage({
+    required this.controller,
+    required this.onOpenSearch,
+    required this.onOpenNotifications,
+    super.key,
+  });
+
+  final dynamic controller;
+  final VoidCallback onOpenSearch;
+  final VoidCallback onOpenNotifications;
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  dynamic get controller => widget.controller;
+  VoidCallback get onOpenSearch => widget.onOpenSearch;
+  VoidCallback get onOpenNotifications => widget.onOpenNotifications;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.syncFromApi();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final userName = (controller.currentUser?.name ?? 'Player').toString();
+    final games = (controller.nearbyMatches as List).take(4).toList();
+    final myGames = (controller.myHostedMatches as List).take(3).toList();
+    final nearbyPlayers = (controller.nearbyPlayersCount as int?) ?? 0;
+    final unread =
+        (controller.unreadInviteNotificationsCount as int?) ??
+        (controller.unreadNotificationsCount as int?) ??
+        0;
+    final languageCode = controller.generalSettings.languageCode.toString();
+    final appTitle = brandTitleForLanguage(languageCode);
+
+    return SafeArea(
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF7FBF9), AppColors.bg],
+          ),
+        ),
+        child: RefreshIndicator(
+          onRefresh: () => controller.syncFromApi(),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+            children: [
+              Row(
+                children: [
+                  const BrandIconTile(size: 42),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      appTitle,
+                      textDirection: brandTextDirectionForLanguage(
+                        languageCode,
+                      ),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        fontFamilyFallback: isArabicLanguage(languageCode)
+                            ? brandArabicFontFallback
+                            : brandLatinFontFallback,
+                      ),
+                    ),
+                  ),
+                  _actionIconButton(icon: Icons.search, onTap: onOpenSearch),
+                  const SizedBox(width: 6),
+                  _notificationButton(unread),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF0A7A47), Color(0xFF0C5737)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.green.withValues(alpha: .26),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hi $userName 👋',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Ready for your next match?',
+                      style: TextStyle(
+                        color: Color(0xFFD8F3E7),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _heroChip(
+                          icon: Icons.location_on_outlined,
+                          label: controller.selectedArea.toString(),
+                        ),
+                        _heroChip(
+                          icon: Icons.groups_2_outlined,
+                          label: '$nearbyPlayers players nearby',
+                        ),
+                        _heroChip(
+                          icon: Icons.notifications_active_outlined,
+                          label: unread > 0
+                              ? '$unread new alerts'
+                              : 'No alerts',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.sports_score_outlined,
+                    size: 19,
+                    color: AppColors.green,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'My Games',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  ),
+                  const Spacer(),
+                  if (myGames.isNotEmpty)
+                    Text(
+                      '${myGames.length}',
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (myGames.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Create a game to see it here.',
+                    style: TextStyle(color: AppColors.muted),
+                  ),
+                )
+              else
+                ...myGames.map((match) {
+                  final matchId = match.id.toString();
+                  final pendingCount =
+                      (controller.pendingRequestsCountForMatch(matchId)
+                          as int?) ??
+                      0;
+                  final inviteLink = match.inviteLink?.toString() ?? '';
+
+                  return GameCard(
+                    highlighted: true,
+                    title: (match.title ?? 'Game').toString(),
+                    area: (match.area ?? '-').toString(),
+                    time: _formatDate(match.startTime as DateTime),
+                    players:
+                        '${match.joinedPlayers}/${match.maxPlayers} players',
+                    hostName: match.hostName.toString(),
+                    joinedNames: match.sideSummary.toString(),
+                    courtPhotoData: match.courtPhotoData?.toString(),
+                    badge:
+                        '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'MY PUBLIC' : 'MY'} GAME',
+                    statusLabel: pendingCount > 0
+                        ? '$pendingCount pending'
+                        : 'Host',
+                    primaryLabel: pendingCount > 0 ? 'Requests' : 'Manage',
+                    secondaryLabel: inviteLink.isEmpty ? null : 'Share',
+                    onSecondaryAction: inviteLink.isEmpty
+                        ? null
+                        : () => Share.share('Join my padel game:\n$inviteLink'),
+                    onMenuTap: () => _openRequestsDialog(context, matchId),
+                    onTap: () => _openGameDetailsSheet(context, match),
+                    onPrimaryAction: () =>
+                        _openRequestsDialog(context, matchId),
+                  );
+                }),
+              const SizedBox(height: 8),
+              const Row(
+                children: [
+                  Icon(Icons.map_outlined, size: 19, color: AppColors.green),
+                  SizedBox(width: 8),
+                  Text(
+                    'Games Near You',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (games.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'No games yet in this area.',
+                    style: TextStyle(color: AppColors.muted),
+                  ),
+                )
+              else
+                ...games.map((match) {
+                  final matchId = match.id.toString();
+                  final isHost =
+                      (controller.isHostOfMatch(matchId) as bool?) ?? false;
+                  final pendingCount =
+                      (controller.pendingRequestsCountForMatch(matchId)
+                          as int?) ??
+                      0;
+                  final targetLabel =
+                      (controller.targetScopeLabelForMatch(matchId)
+                          as String?) ??
+                      'Public';
+                  final actionLabel = isHost
+                      ? 'Manage'
+                      : (controller.joinActionLabelForMatch(matchId)
+                                as String?) ??
+                            'Join';
+                  final myStatus = controller
+                      .myRequestStatusLabelForMatch(matchId)
+                      ?.toString();
+                  final targetBadge = targetLabel.toUpperCase();
+                  final isPublicGame = targetLabel == 'Public';
+
+                  return GameCard(
+                    title: (match.title ?? 'Game').toString(),
+                    area: (match.area ?? '-').toString(),
+                    time: _formatDate(match.startTime as DateTime),
+                    players:
+                        '${match.joinedPlayers}/${match.maxPlayers} players',
+                    hostName: match.hostName.toString(),
+                    joinedNames: match.sideSummary.toString(),
+                    courtPhotoData: match.courtPhotoData?.toString(),
+                    badge: isPublicGame ? '$targetBadge GAME' : 'GAME',
+                    statusLabel: myStatus,
+                    primaryLabel: actionLabel,
+                    secondaryLabel: isHost && pendingCount > 0
+                        ? 'Requests ($pendingCount)'
+                        : null,
+                    onSecondaryAction: isHost && pendingCount > 0
+                        ? () => _openRequestsDialog(context, matchId)
+                        : null,
+                    onMenuTap: isHost
+                        ? () => _openRequestsDialog(context, matchId)
+                        : null,
+                    onTap: () => _openGameDetailsSheet(context, match),
+                    onPrimaryAction: () async {
+                      if (isHost) {
+                        _openRequestsDialog(context, matchId);
+                        return;
+                      }
+                      String? side;
+                      if (actionLabel != 'Leave') {
+                        side = await _pickJoinSide(context, match);
+                        if (side == null) {
+                          return;
+                        }
+                      }
+                      final result = await controller.joinMatchFromFeed(
+                        matchId,
+                        preferredSide: side,
+                      );
+                      if (context.mounted) {
+                        _showSnack(context, result.toString());
+                      }
+                    },
+                  );
+                }),
+              const SizedBox(height: 8),
+              const Row(
+                children: [
+                  Icon(
+                    Icons.flash_on_outlined,
+                    size: 20,
+                    color: AppColors.green,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Quick Actions',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _quickActionTile(
+                      icon: Icons.qr_code_rounded,
+                      title: 'Join with Link',
+                      subtitle: 'Paste invite URL',
+                      solid: false,
+                      onTap: () => _openJoinCodeDialog(context),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _quickActionTile(
+                      icon: Icons.add_circle_outline,
+                      title: 'Create Game',
+                      subtitle: 'Circle / Friends / Public',
+                      solid: true,
+                      onTap: () async {
+                        final dynamic created = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CreateGamePage(controller: controller),
+                          ),
+                        );
+                        if (created != null && context.mounted) {
+                          final match = created.match;
+                          final inviteLink = match.inviteLink?.toString() ?? '';
+                          _showCreatedGameActions(
+                            context,
+                            match.title.toString(),
+                            inviteLink,
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCreatedGameActions(
+    BuildContext context,
+    String title,
+    String inviteLink,
+  ) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('$title created.'),
+          action: inviteLink.isEmpty
+              ? null
+              : SnackBarAction(
+                  label: 'Share',
+                  onPressed: () {
+                    Share.share('Join my padel game:\n$inviteLink');
+                  },
+                ),
+        ),
+      );
+  }
+
+  Future<String?> _pickJoinSide(BuildContext context, dynamic match) {
+    final leftCount = (match.playersOnSide('left') as List).length;
+    final rightCount = (match.playersOnSide('right') as List).length;
+
+    return showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Pick your side',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Each side can have 2 players.',
+                  style: TextStyle(color: AppColors.muted),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: leftCount >= 2
+                            ? null
+                            : () => Navigator.of(context).pop('left'),
+                        icon: const Icon(Icons.keyboard_double_arrow_left),
+                        label: Text('Left ($leftCount/2)'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: rightCount >= 2
+                            ? null
+                            : () => Navigator.of(context).pop('right'),
+                        icon: const Icon(Icons.keyboard_double_arrow_right),
+                        label: Text('Right ($rightCount/2)'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _openGameDetailsSheet(BuildContext context, dynamic match) {
+    final joined = (match.joinedParticipants as List).toList();
+    final inviteLink = match.inviteLink?.toString() ?? '';
+    final matchId = match.id.toString();
+    final canChat = (controller.canChatInMatch(matchId) as bool?) ?? false;
+    final courtImage = CourtPhoto.imageProvider(
+      match.courtPhotoData?.toString(),
+    );
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              if (courtImage != null) ...[
+                CourtPhoto.fromProvider(
+                  imageProvider: courtImage,
+                  borderRadius: 20,
+                ),
+                const SizedBox(height: 14),
+              ],
+              Text(
+                match.title.toString(),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: UserAvatar(
+                  name: match.hostName.toString(),
+                  photoData: match.hostPhotoData?.toString(),
+                  fallbackIcon: Icons.person_outline,
+                ),
+                title: const Text('Hosted by'),
+                subtitle: Text(match.hostName.toString()),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(
+                  child: Icon(Icons.location_on_outlined),
+                ),
+                title: Text(match.courtName.toString()),
+                subtitle: Text(
+                  '${match.area} • ${_formatDate(match.startTime as DateTime)}',
+                ),
+              ),
+              if (canChat) ...[
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: () async {
+                    final threadId = await controller.openOrCreateGameThread(
+                      matchId,
+                    );
+                    if (!context.mounted) {
+                      return;
+                    }
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ChatThreadPage(
+                          controller: controller,
+                          threadId: threadId.toString(),
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.forum_outlined),
+                  label: const Text('Open game chat'),
+                ),
+              ],
+              const SizedBox(height: 8),
+              Text(
+                'Joined players (${joined.length})',
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (joined.isEmpty)
+                const Text(
+                  'No players accepted yet.',
+                  style: TextStyle(color: AppColors.muted),
+                )
+              else
+                ...joined.map(
+                  (player) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: UserAvatar(
+                      name: player.name.toString(),
+                      photoData: player.photoData?.toString(),
+                      fallbackIcon: Icons.how_to_reg_outlined,
+                    ),
+                    title: Text(player.name.toString()),
+                    subtitle: Text(
+                      '@${player.handle} • ${_sideLabel(player.side?.toString())}',
+                    ),
+                  ),
+                ),
+              if (inviteLink.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () =>
+                      Share.share('Join my padel game:\n$inviteLink'),
+                  icon: const Icon(Icons.ios_share_outlined),
+                  label: const Text('Share invite'),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _sideLabel(String? side) {
+    if (side == 'left') {
+      return 'Left';
+    }
+    if (side == 'right') {
+      return 'Right';
+    }
+    return 'No side';
+  }
+
+  Widget _actionIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Ink(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          border: Border.all(color: AppColors.stroke),
+        ),
+        child: Icon(icon, size: 20),
+      ),
+    );
+  }
+
+  Widget _notificationButton(int unread) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _actionIconButton(
+          icon: Icons.notifications_none,
+          onTap: onOpenNotifications,
+        ),
+        if (unread > 0)
+          Positioned(
+            right: -1,
+            top: -2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFB42318),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                unread > 99 ? '99+' : unread.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _heroChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .16),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFFE5F8EF)),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFFE5F8EF),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickActionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool solid,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Ink(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: solid
+              ? const LinearGradient(
+                  colors: [AppColors.lime, Color(0xFF94E73D)],
+                )
+              : null,
+          color: solid ? null : Colors.white,
+          border: Border.all(
+            color: solid ? const Color(0xFF94E73D) : AppColors.stroke,
+          ),
+          boxShadow: [
+            if (solid)
+              BoxShadow(
+                color: AppColors.lime.withValues(alpha: .35),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              icon,
+              color: solid ? AppColors.dark : AppColors.green,
+              size: 21,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: solid ? AppColors.dark : AppColors.text,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: solid
+                    ? AppColors.dark.withValues(alpha: .72)
+                    : AppColors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openJoinCodeDialog(BuildContext context) async {
+    final linkController = TextEditingController();
+    var selectedSide = 'left';
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Join by Link'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: linkController,
+                    decoration: const InputDecoration(
+                      hintText: 'https://padelconnect.app/join?m=...&code=...',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<String>(
+                    selected: {selectedSide},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (selection) {
+                      setDialogState(() => selectedSide = selection.first);
+                    },
+                    segments: const [
+                      ButtonSegment<String>(
+                        value: 'left',
+                        icon: Icon(Icons.keyboard_double_arrow_left),
+                        label: Text('Left'),
+                      ),
+                      ButtonSegment<String>(
+                        value: 'right',
+                        icon: Icon(Icons.keyboard_double_arrow_right),
+                        label: Text('Right'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final result = await controller.requestPrivateJoinByLink(
+                      inviteLink: linkController.text,
+                      preferredSide: selectedSide,
+                    );
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                      _showSnack(context, result.toString());
+                    }
+                  },
+                  child: const Text('Send'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    linkController.dispose();
+  }
+
+  void _openRequestsDialog(BuildContext context, String matchId) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) {
+        return AnimatedBuilder(
+          animation: controller,
+          builder: (context, _) {
+            final requests = (controller.allRequestsForMatch(matchId) as List)
+                .toList();
+            final match = controller.matchById(matchId);
+            final inviteLink = match?.inviteLink?.toString() ?? '';
+
+            return SafeArea(
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          match?.title.toString() ?? 'Game',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      if (inviteLink.isNotEmpty)
+                        IconButton(
+                          tooltip: 'Share',
+                          onPressed: () {
+                            Share.share('Join my padel game:\n$inviteLink');
+                          },
+                          icon: const Icon(Icons.share_outlined),
+                        ),
+                      PopupMenuButton<String>(
+                        tooltip: 'Game options',
+                        onSelected: (value) async {
+                          if (value == 'private') {
+                            final result = await controller
+                                .makeHostedMatchPrivate(matchId);
+                            if (context.mounted) {
+                              _showSnack(context, result.toString());
+                            }
+                          }
+                          if (value == 'delete') {
+                            if (!context.mounted) {
+                              return;
+                            }
+                            final confirmed = await _confirmDelete(context);
+                            if (confirmed != true) {
+                              return;
+                            }
+                            final result = await controller.deleteHostedMatch(
+                              matchId,
+                            );
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                              _showSnack(context, result.toString());
+                            }
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: 'private',
+                            child: Text('Make private'),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Delete game'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              _openInviteMoreDialog(context, matchId),
+                          icon: const Icon(Icons.person_add_alt_1_outlined),
+                          label: const Text('Invite more players'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: inviteLink.isEmpty
+                              ? null
+                              : () {
+                                  Share.share(
+                                    'Join my padel game:\n$inviteLink',
+                                  );
+                                },
+                          icon: const Icon(Icons.ios_share_outlined),
+                          label: const Text('Share link'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Players / Requests',
+                    style: TextStyle(color: AppColors.muted),
+                  ),
+                  const SizedBox(height: 10),
+                  if (requests.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        'No players joined yet.',
+                        style: TextStyle(color: AppColors.muted),
+                      ),
+                    )
+                  else
+                    ...requests.map((request) {
+                      final status = request.status.toString().split('.').last;
+                      return Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      request.requesterName.toString(),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    Text(
+                                      status,
+                                      style: const TextStyle(
+                                        color: AppColors.muted,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (status == 'pending' || status == 'onHold')
+                                IconButton(
+                                  onPressed: () async {
+                                    final approved =
+                                        await controller.approveJoinRequest(
+                                              request.id.toString(),
+                                            )
+                                            as bool;
+                                    if (!context.mounted) {
+                                      return;
+                                    }
+                                    _showSnack(
+                                      context,
+                                      approved ? 'Approved.' : 'Game is full.',
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.check_circle_outline,
+                                    color: AppColors.green,
+                                  ),
+                                ),
+                              if (status == 'pending')
+                                IconButton(
+                                  onPressed: () async {
+                                    await controller.holdJoinRequest(
+                                      request.id.toString(),
+                                    );
+                                    if (!context.mounted) {
+                                      return;
+                                    }
+                                    _showSnack(context, 'Moved to hold.');
+                                  },
+                                  icon: const Icon(
+                                    Icons.pause_circle_outline,
+                                    color: Color(0xFF7A5C00),
+                                  ),
+                                ),
+                              if (status == 'pending' ||
+                                  status == 'onHold' ||
+                                  status == 'full')
+                                IconButton(
+                                  onPressed: () async {
+                                    await controller.rejectJoinRequest(
+                                      request.id.toString(),
+                                    );
+                                    if (!context.mounted) {
+                                      return;
+                                    }
+                                    _showSnack(
+                                      context,
+                                      'Updated. Player sees game full.',
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.cancel_outlined,
+                                    color: Color(0xFF8A2B16),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openInviteMoreDialog(
+    BuildContext context,
+    String matchId,
+  ) async {
+    final selectedIds = <String>{};
+    var ratingFilter = 'all';
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final candidates =
+                (controller.inviteCandidatesForMatch(matchId) as List)
+                    .where((user) => _matchesRatingFilter(user, ratingFilter))
+                    .toList();
+
+            return AlertDialog(
+              title: const Text('Invite more players'),
+              content: SizedBox(
+                width: 360,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _ratingFilterBar(
+                      selected: ratingFilter,
+                      onSelected: (value) {
+                        setDialogState(() => ratingFilter = value);
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    if (candidates.isEmpty)
+                      const Text(
+                        'No new players available to invite right now.',
+                        style: TextStyle(color: AppColors.muted),
+                      )
+                    else
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 320),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: candidates.length,
+                          itemBuilder: (context, index) {
+                            final user = candidates[index];
+                            final userId = user.id.toString();
+                            final selected = selectedIds.contains(userId);
+                            return CheckboxListTile(
+                              value: selected,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  if (value == true) {
+                                    selectedIds.add(userId);
+                                  } else {
+                                    selectedIds.remove(userId);
+                                  }
+                                });
+                              },
+                              title: Text(user.name.toString()),
+                              subtitle: Text(
+                                '@${user.handle}\n${controller.privateRatingLabelForUser(userId)}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: selectedIds.isEmpty
+                      ? null
+                      : () async {
+                          final result = await controller
+                              .invitePlayersToHostedMatch(
+                                matchId,
+                                selectedIds.toList(growable: false),
+                              );
+                          if (!context.mounted) {
+                            return;
+                          }
+                          Navigator.of(context).pop();
+                          _showSnack(context, result.toString());
+                        },
+                  child: const Text('Invite'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<bool?> _confirmDelete(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete game?'),
+        content: const Text(
+          'This removes the game for you and invited players.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF8A2B16),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _matchesRatingFilter(dynamic user, String filter) {
+    final rating = controller.privateRatingForUser(user.id.toString()) as int?;
+    return switch (filter) {
+      'beginner' => rating != null && rating <= 3,
+      'intermediate' => rating != null && rating >= 4 && rating <= 6,
+      'pro' => rating != null && rating >= 7,
+      'unrated' => rating == null,
+      _ => true,
+    };
+  }
+
+  Widget _ratingFilterBar({
+    required String selected,
+    required ValueChanged<String> onSelected,
+  }) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _ratingFilterChip('all', 'All', selected, onSelected),
+        _ratingFilterChip('beginner', 'Beginner', selected, onSelected),
+        _ratingFilterChip('intermediate', 'Intermediate', selected, onSelected),
+        _ratingFilterChip('pro', 'Pro', selected, onSelected),
+        _ratingFilterChip('unrated', 'Unrated', selected, onSelected),
+      ],
+    );
+  }
+
+  Widget _ratingFilterChip(
+    String key,
+    String label,
+    String selected,
+    ValueChanged<String> onSelected,
+  ) {
+    return ChoiceChip(
+      selected: selected == key,
+      label: Text(label),
+      onSelected: (_) => onSelected(key),
+    );
+  }
+
+  static void _showSnack(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  static String _formatDate(DateTime value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '${value.day}/${value.month}/${value.year}, $hour:$minute';
+  }
+}
