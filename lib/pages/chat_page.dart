@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/pages/chat_thread_page.dart';
 import 'package:padel_connect/theme/app_theme.dart';
 import 'package:padel_connect/widgets/user_avatar.dart';
@@ -47,6 +48,10 @@ class _ChatPageState extends State<ChatPage> {
           0,
           (sum, item) => sum + ((item.unreadCount as int?) ?? 0),
         );
+        final languageCode = widget.controller.generalSettings.languageCode
+            .toString();
+        String tr(String english, String arabic) =>
+            appText(languageCode, english, arabic);
 
         return SafeArea(
           child: DecoratedBox(
@@ -62,9 +67,9 @@ class _ChatPageState extends State<ChatPage> {
               children: [
                 Row(
                   children: [
-                    const Text(
-                      'Chat',
-                      style: TextStyle(
+                    Text(
+                      tr('Chat', 'المحادثة'),
+                      style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w900,
                       ),
@@ -80,7 +85,11 @@ class _ChatPageState extends State<ChatPage> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Text(
-                        unreadTotal > 0 ? '$unreadTotal unread' : 'No unread',
+                        unreadTotal > 0
+                            ? (appIsArabic(languageCode)
+                                  ? '$unreadTotal غير مقروء'
+                                  : '$unreadTotal unread')
+                            : tr('No unread', 'لا توجد غير مقروءة'),
                         style: const TextStyle(
                           color: AppColors.green,
                           fontWeight: FontWeight.w800,
@@ -91,24 +100,27 @@ class _ChatPageState extends State<ChatPage> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Circle and game conversations',
-                  style: TextStyle(color: AppColors.muted),
+                Text(
+                  tr(
+                    'Circle and game conversations',
+                    'محادثات السيركل والمباريات',
+                  ),
+                  style: const TextStyle(color: AppColors.muted),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _searchController,
                   onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Search chats',
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    hintText: tr('Search chats', 'ابحث في المحادثات'),
                   ),
                 ),
                 const SizedBox(height: 14),
                 if (matchingFriends.isNotEmpty) ...[
-                  const Text(
-                    'Start a chat',
-                    style: TextStyle(fontWeight: FontWeight.w900),
+                  Text(
+                    tr('Start a chat', 'ابدأ محادثة'),
+                    style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 8),
                   ...matchingFriends.map((user) {
@@ -153,9 +165,9 @@ class _ChatPageState extends State<ChatPage> {
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: AppColors.stroke),
                     ),
-                    child: const Text(
-                      'No chats yet',
-                      style: TextStyle(color: AppColors.muted),
+                    child: Text(
+                      tr('No chats yet', 'لا توجد محادثات بعد'),
+                      style: const TextStyle(color: AppColors.muted),
                     ),
                   )
                 else

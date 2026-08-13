@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:padel_connect/app_language.dart';
 
 class CommunityPage extends StatefulWidget {
   const CommunityPage({required this.controller, super.key});
@@ -23,14 +24,18 @@ class _CommunityPageState extends State<CommunityPage> {
   @override
   Widget build(BuildContext context) {
     final posts = (widget.controller.feedPosts as List).toList();
+    final languageCode = widget.controller.generalSettings.languageCode
+        .toString();
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
 
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            'Community',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+          Text(
+            tr('Community', 'المجتمع'),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           Container(
@@ -49,17 +54,20 @@ class _CommunityPageState extends State<CommunityPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Share',
-                  style: TextStyle(fontWeight: FontWeight.w800),
+                Text(
+                  tr('Share', 'مشاركة'),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: _postController,
                   minLines: 1,
                   maxLines: 4,
-                  decoration: const InputDecoration(
-                    hintText: 'Post about games or meetups...',
+                  decoration: InputDecoration(
+                    hintText: tr(
+                      'Post about games or meetups...',
+                      'اكتب عن المباريات أو التجمعات...',
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -78,7 +86,7 @@ class _CommunityPageState extends State<CommunityPage> {
                       setState(() {});
                     },
                     icon: const Icon(Icons.send),
-                    label: const Text('Post'),
+                    label: Text(tr('Post', 'نشر')),
                   ),
                 ),
               ],
@@ -117,7 +125,7 @@ class _CommunityPageState extends State<CommunityPage> {
                               as bool?) ??
                           false)
                         PopupMenuButton<String>(
-                          tooltip: 'Post options',
+                          tooltip: tr('Post options', 'خيارات المنشور'),
                           onSelected: (value) async {
                             if (value != 'delete') {
                               return;
@@ -131,10 +139,10 @@ class _CommunityPageState extends State<CommunityPage> {
                             _showSnack(result.toString());
                             setState(() {});
                           },
-                          itemBuilder: (context) => const [
+                          itemBuilder: (context) => [
                             PopupMenuItem(
                               value: 'delete',
-                              child: Text('Delete post'),
+                              child: Text(tr('Delete post', 'حذف المنشور')),
                             ),
                           ],
                         ),
@@ -173,23 +181,29 @@ class _CommunityPageState extends State<CommunityPage> {
   }
 
   Future<void> _openCommentDialog(String postId) async {
+    final languageCode = widget.controller.generalSettings.languageCode
+        .toString();
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
     final commentController = TextEditingController();
     final message = await showDialog<String>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Add comment'),
+          title: Text(tr('Add comment', 'إضافة تعليق')),
           content: TextField(
             controller: commentController,
             autofocus: true,
             minLines: 1,
             maxLines: 3,
-            decoration: const InputDecoration(hintText: 'Write a comment'),
+            decoration: InputDecoration(
+              hintText: tr('Write a comment', 'اكتب تعليقاً'),
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: Text(tr('Cancel', 'إلغاء')),
             ),
             FilledButton(
               onPressed: () async {
@@ -202,7 +216,7 @@ class _CommunityPageState extends State<CommunityPage> {
                 }
                 Navigator.of(dialogContext).pop(message.toString());
               },
-              child: const Text('Comment'),
+              child: Text(tr('Comment', 'تعليق')),
             ),
           ],
         );

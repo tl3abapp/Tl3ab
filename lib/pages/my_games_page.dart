@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/pages/chat_thread_page.dart';
 import 'package:padel_connect/theme/app_theme.dart';
 import 'package:padel_connect/widgets/court_photo.dart';
@@ -23,13 +24,21 @@ class MyGamesPage extends StatelessWidget {
         final games = (controller.myHostedMatches as List).toList();
         final history = (controller.myMatchHistory as List).toList();
         final syncing = (controller.syncing as bool?) ?? false;
+        final languageCode = controller.generalSettings.languageCode.toString();
+        String tr(String english, String arabic) =>
+            appText(languageCode, english, arabic);
+        String playersLabel(dynamic match) => appIsArabic(languageCode)
+            ? '${match.joinedPlayers}/${match.maxPlayers} لاعبين'
+            : '${match.joinedPlayers}/${match.maxPlayers} players';
+        String shareText(String inviteLink) =>
+            '${tr('Join my padel game:', 'انضم لمباراة البادل:')}\n$inviteLink';
 
         return Scaffold(
           appBar: AppBar(
-            title: Text('My Games (${games.length})'),
+            title: Text('${tr('My Games', 'مبارياتي')} (${games.length})'),
             actions: [
               IconButton(
-                tooltip: 'Refresh',
+                tooltip: tr('Refresh', 'تحديث'),
                 onPressed: syncing ? null : () => controller.syncFromApi(),
                 icon: syncing
                     ? const SizedBox.square(
@@ -45,18 +54,18 @@ class MyGamesPage extends StatelessWidget {
             child: games.isEmpty && history.isEmpty
                 ? ListView(
                     padding: const EdgeInsets.all(20),
-                    children: const [
-                      SizedBox(height: 120),
+                    children: [
+                      const SizedBox(height: 120),
                       Icon(
                         Icons.sports_tennis_outlined,
                         size: 46,
                         color: AppColors.muted,
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Center(
                         child: Text(
-                          'No games created yet.',
-                          style: TextStyle(
+                          tr('No games created yet.', 'لم تنشئ مباريات بعد.'),
+                          style: const TextStyle(
                             color: AppColors.muted,
                             fontWeight: FontWeight.w700,
                           ),
@@ -68,9 +77,12 @@ class MyGamesPage extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
                     children: [
                       if (games.isNotEmpty) ...[
-                        const Text(
-                          'Manage your active games',
-                          style: TextStyle(
+                        Text(
+                          tr(
+                            'Manage your active games',
+                            'إدارة مبارياتك النشطة',
+                          ),
+                          style: const TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 18,
                           ),
@@ -89,25 +101,33 @@ class MyGamesPage extends StatelessWidget {
                             title: (match.title ?? 'Game').toString(),
                             area: (match.area ?? '-').toString(),
                             time: _formatDate(match.startTime as DateTime),
-                            players:
-                                '${match.joinedPlayers}/${match.maxPlayers} players',
+                            players: playersLabel(match),
                             hostName: match.hostName.toString(),
                             joinedNames: match.sideSummary.toString(),
                             courtPhotoData: match.courtPhotoData?.toString(),
-                            badge:
-                                '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'MY PUBLIC' : 'MY'} GAME',
+                            badge: appIsArabic(languageCode)
+                                ? ((controller
+                                              .targetScopeLabelForMatch(matchId)
+                                              .toString() ==
+                                          'Public')
+                                      ? 'مباراتي العامة'
+                                      : 'مباراتي')
+                                : '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'MY PUBLIC' : 'MY'} GAME',
                             statusLabel: pendingCount > 0
-                                ? '$pendingCount pending'
-                                : 'Host',
+                                ? tr(
+                                    '$pendingCount pending',
+                                    '$pendingCount بانتظارك',
+                                  )
+                                : tr('Host', 'الهوست'),
                             primaryLabel: pendingCount > 0
-                                ? 'Requests'
-                                : 'Manage',
-                            secondaryLabel: inviteLink.isEmpty ? null : 'Share',
+                                ? tr('Requests', 'الطلبات')
+                                : tr('Manage', 'إدارة'),
+                            secondaryLabel: inviteLink.isEmpty
+                                ? null
+                                : tr('Share', 'مشاركة'),
                             onSecondaryAction: inviteLink.isEmpty
                                 ? null
-                                : () => Share.share(
-                                    'Join my padel game:\n$inviteLink',
-                                  ),
+                                : () => Share.share(shareText(inviteLink)),
                             onTap: () => _openGameDetailsSheet(context, match),
                             onMenuTap: () => _openManageSheet(context, matchId),
                             onPrimaryAction: () =>
@@ -115,23 +135,26 @@ class MyGamesPage extends StatelessWidget {
                           );
                         }),
                       ] else ...[
-                        const Text(
-                          'No active games',
-                          style: TextStyle(
+                        Text(
+                          tr('No active games', 'لا توجد مباريات نشطة'),
+                          style: const TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 18,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Finished games move to your history.',
-                          style: TextStyle(color: AppColors.muted),
+                        Text(
+                          tr(
+                            'Finished games move to your history.',
+                            'المباريات المنتهية تنتقل إلى السجل.',
+                          ),
+                          style: const TextStyle(color: AppColors.muted),
                         ),
                       ],
                       if (history.isNotEmpty) ...[
                         const SizedBox(height: 24),
                         Text(
-                          'History (${history.length})',
+                          '${tr('History', 'السجل')} (${history.length})',
                           style: const TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 18,
@@ -144,18 +167,23 @@ class MyGamesPage extends StatelessWidget {
                             title: (match.title ?? 'Game').toString(),
                             area: (match.area ?? '-').toString(),
                             time: _formatDate(match.startTime as DateTime),
-                            players:
-                                '${match.joinedPlayers}/${match.maxPlayers} players',
+                            players: playersLabel(match),
                             hostName: match.hostName.toString(),
                             joinedNames: match.sideSummary.toString(),
                             courtPhotoData: match.courtPhotoData?.toString(),
-                            badge:
-                                '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'PUBLIC ' : ''}HISTORY',
+                            badge: appIsArabic(languageCode)
+                                ? ((controller
+                                              .targetScopeLabelForMatch(matchId)
+                                              .toString() ==
+                                          'Public')
+                                      ? 'سجل عام'
+                                      : 'السجل')
+                                : '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'PUBLIC ' : ''}HISTORY',
                             statusLabel:
                                 (controller.isHostOfMatch(matchId) as bool?) ??
                                     false
-                                ? 'Host'
-                                : 'Played',
+                                ? tr('Host', 'الهوست')
+                                : tr('Played', 'تم اللعب'),
                             primaryLabel: null,
                             onTap: () => _openGameDetailsSheet(context, match),
                           );
@@ -174,6 +202,9 @@ class MyGamesPage extends StatelessWidget {
     final inviteLink = match.inviteLink?.toString() ?? '';
     final matchId = match.id.toString();
     final canChat = (controller.canChatInMatch(matchId) as bool?) ?? false;
+    final languageCode = controller.generalSettings.languageCode.toString();
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
     final courtImage = CourtPhoto.imageProvider(
       match.courtPhotoData?.toString(),
     );
@@ -210,7 +241,7 @@ class MyGamesPage extends StatelessWidget {
                   photoData: match.hostPhotoData?.toString(),
                   fallbackIcon: Icons.person_outline,
                 ),
-                title: const Text('Hosted by'),
+                title: Text(tr('Hosted by', 'الهوست')),
                 subtitle: Text(match.hostName.toString()),
               ),
               ListTile(
@@ -244,12 +275,15 @@ class MyGamesPage extends StatelessWidget {
                     );
                   },
                   icon: const Icon(Icons.forum_outlined),
-                  label: const Text('Open game chat'),
+                  label: Text(tr('Open game chat', 'افتح محادثة المباراة')),
                 ),
               ],
               const SizedBox(height: 8),
               Text(
-                'Joined players (${joined.length})',
+                tr(
+                  'Joined players (${joined.length})',
+                  'اللاعبون المنضمون (${joined.length})',
+                ),
                 style: const TextStyle(
                   color: AppColors.muted,
                   fontWeight: FontWeight.w800,
@@ -257,9 +291,12 @@ class MyGamesPage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               if (joined.isEmpty)
-                const Text(
-                  'No players accepted yet.',
-                  style: TextStyle(color: AppColors.muted),
+                Text(
+                  tr(
+                    'No players accepted yet.',
+                    'لم يتم قبول أي لاعب حتى الآن.',
+                  ),
+                  style: const TextStyle(color: AppColors.muted),
                 )
               else
                 ...joined.map(
@@ -279,10 +316,11 @@ class MyGamesPage extends StatelessWidget {
               if (inviteLink.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 FilledButton.icon(
-                  onPressed: () =>
-                      Share.share('Join my padel game:\n$inviteLink'),
+                  onPressed: () => Share.share(
+                    '${tr('Join my padel game:', 'انضم لمباراة البادل:')}\n$inviteLink',
+                  ),
                   icon: const Icon(Icons.ios_share_outlined),
-                  label: const Text('Share invite'),
+                  label: Text(tr('Share invite', 'مشاركة الدعوة')),
                 ),
               ],
             ],
@@ -303,6 +341,9 @@ class MyGamesPage extends StatelessWidget {
   }
 
   void _openManageSheet(BuildContext context, String matchId) {
+    final languageCode = controller.generalSettings.languageCode.toString();
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -333,7 +374,7 @@ class MyGamesPage extends StatelessWidget {
                         ),
                       ),
                       PopupMenuButton<String>(
-                        tooltip: 'Game options',
+                        tooltip: tr('Game options', 'خيارات المباراة'),
                         onSelected: (value) async {
                           if (value == 'private') {
                             final result = await controller
@@ -361,14 +402,14 @@ class MyGamesPage extends StatelessWidget {
                             }
                           }
                         },
-                        itemBuilder: (context) => const [
+                        itemBuilder: (context) => [
                           PopupMenuItem(
                             value: 'private',
-                            child: Text('Make private'),
+                            child: Text(tr('Make private', 'اجعلها خاصة')),
                           ),
                           PopupMenuItem(
                             value: 'delete',
-                            child: Text('Delete game'),
+                            child: Text(tr('Delete game', 'حذف المباراة')),
                           ),
                         ],
                       ),
@@ -382,7 +423,7 @@ class MyGamesPage extends StatelessWidget {
                           onPressed: () =>
                               _openInviteMoreDialog(context, matchId),
                           icon: const Icon(Icons.person_add_alt_1_outlined),
-                          label: const Text('Invite more'),
+                          label: Text(tr('Invite more', 'دعوة المزيد')),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -391,10 +432,10 @@ class MyGamesPage extends StatelessWidget {
                           onPressed: inviteLink.isEmpty
                               ? null
                               : () => Share.share(
-                                  'Join my padel game:\n$inviteLink',
+                                  '${tr('Join my padel game:', 'انضم لمباراة البادل:')}\n$inviteLink',
                                 ),
                           icon: const Icon(Icons.ios_share_outlined),
-                          label: const Text('Share'),
+                          label: Text(tr('Share', 'مشاركة')),
                         ),
                       ),
                     ],
@@ -408,7 +449,9 @@ class MyGamesPage extends StatelessWidget {
                               ? null
                               : () => _openEditGameDialog(context, match),
                           icon: const Icon(Icons.edit_calendar_outlined),
-                          label: const Text('Edit time/photo'),
+                          label: Text(
+                            tr('Edit time/photo', 'تعديل الوقت/الصورة'),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -418,23 +461,23 @@ class MyGamesPage extends StatelessWidget {
                               ? null
                               : () => _openReplacePlayerDialog(context, match),
                           icon: const Icon(Icons.swap_horiz_outlined),
-                          label: const Text('Replace player'),
+                          label: Text(tr('Replace player', 'تبديل لاعب')),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 14),
-                  const Text(
-                    'Players / Requests',
-                    style: TextStyle(color: AppColors.muted),
+                  Text(
+                    tr('Players / Requests', 'اللاعبون / الطلبات'),
+                    style: const TextStyle(color: AppColors.muted),
                   ),
                   const SizedBox(height: 8),
                   if (requests.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Text(
-                        'No players joined yet.',
-                        style: TextStyle(color: AppColors.muted),
+                        tr('No players joined yet.', 'لم ينضم أي لاعب بعد.'),
+                        style: const TextStyle(color: AppColors.muted),
                       ),
                     )
                   else
@@ -449,7 +492,7 @@ class MyGamesPage extends StatelessWidget {
                             children: [
                               if (status == 'pending' || status == 'onHold')
                                 IconButton(
-                                  tooltip: 'Approve',
+                                  tooltip: tr('Approve', 'قبول'),
                                   onPressed: () async {
                                     final approved =
                                         await controller.approveJoinRequest(
@@ -460,8 +503,11 @@ class MyGamesPage extends StatelessWidget {
                                       _showSnack(
                                         context,
                                         approved
-                                            ? 'Approved.'
-                                            : 'Game is full.',
+                                            ? tr('Approved.', 'تم القبول.')
+                                            : tr(
+                                                'Game is full.',
+                                                'المباراة مكتملة.',
+                                              ),
                                       );
                                     }
                                   },
@@ -474,13 +520,16 @@ class MyGamesPage extends StatelessWidget {
                                   status == 'onHold' ||
                                   status == 'full')
                                 IconButton(
-                                  tooltip: 'Reject',
+                                  tooltip: tr('Reject', 'رفض'),
                                   onPressed: () async {
                                     await controller.rejectJoinRequest(
                                       request.id.toString(),
                                     );
                                     if (context.mounted) {
-                                      _showSnack(context, 'Rejected.');
+                                      _showSnack(
+                                        context,
+                                        tr('Rejected.', 'تم الرفض.'),
+                                      );
                                     }
                                   },
                                   icon: const Icon(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/theme/app_theme.dart';
 import 'package:padel_connect/widgets/user_avatar.dart';
 import 'package:padel_connect/widgets/user_private_profile_sheet.dart';
@@ -73,13 +74,17 @@ class _SearchPageState extends State<SearchPage> {
 
         final syncing = (widget.controller.syncing as bool?) ?? false;
         final syncError = widget.controller.syncError?.toString();
+        final languageCode = widget.controller.generalSettings.languageCode
+            .toString();
+        String tr(String english, String arabic) =>
+            appText(languageCode, english, arabic);
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Search'),
+            title: Text(tr('Search', 'البحث')),
             actions: [
               IconButton(
-                tooltip: 'Refresh',
+                tooltip: tr('Refresh', 'تحديث'),
                 onPressed: syncing
                     ? null
                     : () => widget.controller.syncFromApi(),
@@ -101,17 +106,23 @@ class _SearchPageState extends State<SearchPage> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _SyncBanner(
-                      message:
-                          'Could not refresh live data. Make sure the API is running.',
+                      message: tr(
+                        'Could not refresh live data. Make sure the API is running.',
+                        'تعذر تحديث البيانات. تأكد أن الخدمة تعمل.',
+                      ),
                       onRetry: () => widget.controller.syncFromApi(),
+                      retryLabel: tr('Retry', 'إعادة المحاولة'),
                     ),
                   ),
                 TextField(
                   controller: _searchController,
                   onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    hintText: 'Search users, games, posts',
-                    prefixIcon: Icon(Icons.search),
+                  decoration: InputDecoration(
+                    hintText: tr(
+                      'Search users, games, posts',
+                      'ابحث عن لاعبين، مباريات، منشورات',
+                    ),
+                    prefixIcon: const Icon(Icons.search),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -121,31 +132,31 @@ class _SearchPageState extends State<SearchPage> {
                   onSelectionChanged: (selection) {
                     setState(() => _tab = selection.first);
                   },
-                  segments: const [
+                  segments: [
                     ButtonSegment<SearchTab>(
                       value: SearchTab.users,
-                      icon: Icon(Icons.person_search_outlined),
-                      label: Text('Users'),
+                      icon: const Icon(Icons.person_search_outlined),
+                      label: Text(tr('Users', 'اللاعبون')),
                     ),
                     ButtonSegment<SearchTab>(
                       value: SearchTab.games,
-                      icon: Icon(Icons.sports_tennis_outlined),
-                      label: Text('Games'),
+                      icon: const Icon(Icons.sports_tennis_outlined),
+                      label: Text(tr('Games', 'المباريات')),
                     ),
                     ButtonSegment<SearchTab>(
                       value: SearchTab.posts,
-                      icon: Icon(Icons.feed_outlined),
-                      label: Text('Posts'),
+                      icon: const Icon(Icons.feed_outlined),
+                      label: Text(tr('Posts', 'المنشورات')),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 if (_tab == SearchTab.users)
-                  ..._buildUsers(users)
+                  ..._buildUsers(users, languageCode)
                 else if (_tab == SearchTab.games)
-                  ..._buildGames(games)
+                  ..._buildGames(games, languageCode)
                 else
-                  ..._buildPosts(posts),
+                  ..._buildPosts(posts, languageCode),
               ],
             ),
           ),
@@ -154,12 +165,15 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  List<Widget> _buildUsers(List users) {
+  List<Widget> _buildUsers(List users, String languageCode) {
     if (users.isEmpty) {
-      return const [
+      return [
         Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Text('No users', style: TextStyle(color: AppColors.muted)),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            appText(languageCode, 'No users', 'لا يوجد لاعبون'),
+            style: const TextStyle(color: AppColors.muted),
+          ),
         ),
       ];
     }
@@ -198,8 +212,8 @@ class _SearchPageState extends State<SearchPage> {
                 child: Text(
                   (widget.controller.isFollowingUser(user.id.toString())
                           as bool)
-                      ? 'Following'
-                      : 'Follow',
+                      ? appText(languageCode, 'Following', 'تتابعه')
+                      : appText(languageCode, 'Follow', 'متابعة'),
                 ),
               ),
             ),
@@ -208,12 +222,15 @@ class _SearchPageState extends State<SearchPage> {
         .toList();
   }
 
-  List<Widget> _buildGames(List games) {
+  List<Widget> _buildGames(List games, String languageCode) {
     if (games.isEmpty) {
-      return const [
+      return [
         Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Text('No games', style: TextStyle(color: AppColors.muted)),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            appText(languageCode, 'No games', 'لا توجد مباريات'),
+            style: const TextStyle(color: AppColors.muted),
+          ),
         ),
       ];
     }
@@ -230,7 +247,9 @@ class _SearchPageState extends State<SearchPage> {
           subtitle: Text(
             [
               match.area.toString(),
-              '${match.joinedPlayers}/${match.maxPlayers} players',
+              appIsArabic(languageCode)
+                  ? '${match.joinedPlayers}/${match.maxPlayers} لاعبين'
+                  : '${match.joinedPlayers}/${match.maxPlayers} players',
             ].join(' • '),
           ),
         ),
@@ -238,12 +257,15 @@ class _SearchPageState extends State<SearchPage> {
     }).toList();
   }
 
-  List<Widget> _buildPosts(List posts) {
+  List<Widget> _buildPosts(List posts, String languageCode) {
     if (posts.isEmpty) {
-      return const [
+      return [
         Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Text('No posts', style: TextStyle(color: AppColors.muted)),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            appText(languageCode, 'No posts', 'لا توجد منشورات'),
+            style: const TextStyle(color: AppColors.muted),
+          ),
         ),
       ];
     }
@@ -268,10 +290,15 @@ class _SearchPageState extends State<SearchPage> {
 }
 
 class _SyncBanner extends StatelessWidget {
-  const _SyncBanner({required this.message, required this.onRetry});
+  const _SyncBanner({
+    required this.message,
+    required this.onRetry,
+    required this.retryLabel,
+  });
 
   final String message;
   final VoidCallback onRetry;
+  final String retryLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -295,7 +322,7 @@ class _SyncBanner extends StatelessWidget {
               ),
             ),
           ),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
+          TextButton(onPressed: onRetry, child: Text(retryLabel)),
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/theme/app_theme.dart';
 import 'package:padel_connect/widgets/user_avatar.dart';
 import 'package:padel_connect/widgets/user_private_profile_sheet.dart';
@@ -47,13 +48,17 @@ class _CirclePageState extends State<CirclePage> {
             .toList();
         final syncing = (widget.controller.syncing as bool?) ?? false;
         final syncError = widget.controller.syncError?.toString();
+        final languageCode = widget.controller.generalSettings.languageCode
+            .toString();
+        String tr(String english, String arabic) =>
+            appText(languageCode, english, arabic);
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('My Circle'),
+            title: Text(tr('My Circle', 'السيركل')),
             actions: [
               IconButton(
-                tooltip: 'Refresh',
+                tooltip: tr('Refresh', 'تحديث'),
                 onPressed: syncing
                     ? null
                     : () => widget.controller.syncFromApi(),
@@ -75,17 +80,20 @@ class _CirclePageState extends State<CirclePage> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _SyncBanner(
-                      message:
-                          'Could not refresh live users. Make sure the API is running.',
+                      message: tr(
+                        'Could not refresh live users. Make sure the API is running.',
+                        'تعذر تحديث اللاعبين. تأكد أن الخدمة تعمل.',
+                      ),
                       onRetry: () => widget.controller.syncFromApi(),
+                      retryLabel: tr('Retry', 'إعادة المحاولة'),
                     ),
                   ),
                 TextField(
                   controller: _searchController,
                   onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    hintText: 'Search users',
-                    prefixIcon: Icon(Icons.search),
+                  decoration: InputDecoration(
+                    hintText: tr('Search users', 'ابحث عن لاعبين'),
+                    prefixIcon: const Icon(Icons.search),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -93,25 +101,35 @@ class _CirclePageState extends State<CirclePage> {
                   children: [
                     _countChip(
                       Icons.people_outline,
-                      '${circleUsers.length} circle',
+                      appIsArabic(languageCode)
+                          ? '${circleUsers.length} بالسيركل'
+                          : '${circleUsers.length} circle',
                     ),
                     const SizedBox(width: 8),
                     _countChip(
                       Icons.person_add_alt_1,
-                      '${candidates.length} users',
+                      appIsArabic(languageCode)
+                          ? '${candidates.length} لاعبين'
+                          : '${candidates.length} users',
                     ),
                   ],
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Circle',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                Text(
+                  tr('Circle', 'السيركل'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 if (circleUsers.isEmpty)
-                  const Text(
-                    'No users in your circle yet.',
-                    style: TextStyle(color: AppColors.muted),
+                  Text(
+                    tr(
+                      'No users in your circle yet.',
+                      'لا يوجد لاعبون في السيركل حالياً.',
+                    ),
+                    style: const TextStyle(color: AppColors.muted),
                   )
                 else
                   ...circleUsers.map(
@@ -149,15 +167,18 @@ class _CirclePageState extends State<CirclePage> {
                     ),
                   ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Add People',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                Text(
+                  tr('Add People', 'إضافة لاعبين'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 if (candidates.isEmpty)
-                  const Text(
-                    'No users found.',
-                    style: TextStyle(color: AppColors.muted),
+                  Text(
+                    tr('No users found.', 'لا يوجد لاعبون.'),
+                    style: const TextStyle(color: AppColors.muted),
                   )
                 else
                   ...candidates.map((user) {
@@ -240,10 +261,15 @@ class _CirclePageState extends State<CirclePage> {
 }
 
 class _SyncBanner extends StatelessWidget {
-  const _SyncBanner({required this.message, required this.onRetry});
+  const _SyncBanner({
+    required this.message,
+    required this.onRetry,
+    required this.retryLabel,
+  });
 
   final String message;
   final VoidCallback onRetry;
+  final String retryLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -267,7 +293,7 @@ class _SyncBanner extends StatelessWidget {
               ),
             ),
           ),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
+          TextButton(onPressed: onRetry, child: Text(retryLabel)),
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/theme/app_theme.dart';
 import 'package:padel_connect/widgets/user_avatar.dart';
 import 'package:padel_connect/widgets/user_private_profile_sheet.dart';
@@ -15,14 +16,18 @@ class FriendsPage extends StatelessWidget {
       child: AnimatedBuilder(
         animation: controller,
         builder: (context, _) {
+          final languageCode = controller.generalSettings.languageCode
+              .toString();
+          String tr(String english, String arabic) =>
+              appText(languageCode, english, arabic);
           return Scaffold(
             appBar: AppBar(
-              title: const Text('Friends'),
-              bottom: const TabBar(
+              title: Text(tr('Friends', 'الأصدقاء')),
+              bottom: TabBar(
                 tabs: [
-                  Tab(text: 'Friends'),
-                  Tab(text: 'Followers'),
-                  Tab(text: 'Following'),
+                  Tab(text: tr('Friends', 'الأصدقاء')),
+                  Tab(text: tr('Followers', 'المتابعون')),
+                  Tab(text: tr('Following', 'أتابع')),
                 ],
               ),
             ),
@@ -31,17 +36,20 @@ class FriendsPage extends StatelessWidget {
                 _UsersList(
                   controller: controller,
                   users: controller.friendUsers as List,
-                  emptyTitle: 'No friends yet',
+                  emptyTitle: tr('No friends yet', 'لا يوجد أصدقاء حالياً'),
+                  languageCode: languageCode,
                 ),
                 _UsersList(
                   controller: controller,
                   users: controller.followers as List,
-                  emptyTitle: 'No followers',
+                  emptyTitle: tr('No followers', 'لا يوجد متابعون'),
+                  languageCode: languageCode,
                 ),
                 _UsersList(
                   controller: controller,
                   users: controller.following as List,
-                  emptyTitle: 'No following',
+                  emptyTitle: tr('No following', 'لا تتابع أحداً'),
+                  languageCode: languageCode,
                 ),
               ],
             ),
@@ -57,11 +65,13 @@ class _UsersList extends StatelessWidget {
     required this.controller,
     required this.users,
     required this.emptyTitle,
+    required this.languageCode,
   });
 
   final dynamic controller;
   final List users;
   final String emptyTitle;
+  final String languageCode;
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +116,11 @@ class _UsersList extends StatelessWidget {
                     ..showSnackBar(SnackBar(content: Text(message.toString())));
                 }
               },
-              child: Text(following ? 'Following' : 'Follow'),
+              child: Text(
+                following
+                    ? appText(languageCode, 'Following', 'تتابعه')
+                    : appText(languageCode, 'Follow', 'متابعة'),
+              ),
             ),
           ),
         );

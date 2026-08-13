@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/theme/app_theme.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -39,14 +40,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
             pendingRequests.add((match: match, request: request));
           }
         }
+        final languageCode = widget.controller.generalSettings.languageCode
+            .toString();
+        String tr(String english, String arabic) =>
+            appText(languageCode, english, arabic);
 
         return Scaffold(
           appBar: AppBar(
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.notifications_outlined),
-                SizedBox(width: 8),
-                Text('Notifications'),
+                const Icon(Icons.notifications_outlined),
+                const SizedBox(width: 8),
+                Text(tr('Notifications', 'الإشعارات')),
               ],
             ),
             actions: [
@@ -60,10 +65,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
             ],
           ),
           body: items.isEmpty && pendingRequests.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
-                    'No notifications yet',
-                    style: TextStyle(color: AppColors.muted),
+                    tr('No notifications yet', 'لا توجد إشعارات حالياً'),
+                    style: const TextStyle(color: AppColors.muted),
                   ),
                 )
               : ListView.separated(
@@ -85,7 +90,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
                               color: Color(0xFF7A5C00),
                             ),
                           ),
-                          title: Text('${request.requesterName} wants to join'),
+                          title: Text(
+                            appIsArabic(languageCode)
+                                ? '${request.requesterName} يطلب الانضمام'
+                                : '${request.requesterName} wants to join',
+                          ),
                           subtitle: Text(
                             '${match.title}\n${requestedAt.day}/${requestedAt.month}/${requestedAt.year} ${_two(requestedAt.hour)}:${_two(requestedAt.minute)}',
                           ),
@@ -94,7 +103,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                             spacing: 4,
                             children: [
                               IconButton(
-                                tooltip: 'Approve',
+                                tooltip: tr('Approve', 'قبول'),
                                 onPressed: () async {
                                   final approved =
                                       await widget.controller
@@ -105,7 +114,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                   if (context.mounted) {
                                     _showSnack(
                                       context,
-                                      approved ? 'Approved.' : 'Game is full.',
+                                      approved
+                                          ? tr('Approved.', 'تم القبول.')
+                                          : tr(
+                                              'Game is full.',
+                                              'المباراة مكتملة.',
+                                            ),
                                     );
                                   }
                                 },
@@ -115,13 +129,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                 ),
                               ),
                               IconButton(
-                                tooltip: 'Reject',
+                                tooltip: tr('Reject', 'رفض'),
                                 onPressed: () async {
                                   await widget.controller.rejectJoinRequest(
                                     request.id.toString(),
                                   );
                                   if (context.mounted) {
-                                    _showSnack(context, 'Rejected.');
+                                    _showSnack(
+                                      context,
+                                      tr('Rejected.', 'تم الرفض.'),
+                                    );
                                   }
                                 },
                                 icon: const Icon(
@@ -215,7 +232,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void _openNotificationGame(BuildContext context, dynamic notification) {
     final match = widget.controller.matchFromNotification(notification);
     if (match == null) {
-      _showSnack(context, 'Game is not available anymore.');
+      _showSnack(
+        context,
+        appText(
+          widget.controller.generalSettings.languageCode.toString(),
+          'Game is not available anymore.',
+          'المباراة لم تعد متاحة.',
+        ),
+      );
       return;
     }
 
@@ -224,6 +248,22 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final actionLabel =
         (widget.controller.joinActionLabelForMatch(matchId) as String?) ??
         'Join';
+    final languageCode = widget.controller.generalSettings.languageCode
+        .toString();
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
+    String actionText(String value) {
+      switch (value.toLowerCase()) {
+        case 'join':
+          return tr('Join', 'انضم');
+        case 'request':
+          return tr('Request', 'طلب');
+        case 'leave':
+          return tr('Leave', 'خروج');
+        default:
+          return value;
+      }
+    }
 
     showModalBottomSheet<void>(
       context: context,
@@ -245,7 +285,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
                 const SizedBox(height: 8),
                 Text('${match.area} • ${match.courtName}'),
-                Text('${match.joinedPlayers}/${match.maxPlayers} players'),
+                Text(
+                  appIsArabic(languageCode)
+                      ? '${match.joinedPlayers}/${match.maxPlayers} لاعبين'
+                      : '${match.joinedPlayers}/${match.maxPlayers} players',
+                ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -262,7 +306,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
                             _showSnack(context, message.toString());
                           },
                     icon: Icon(isHost ? Icons.verified_user : Icons.login),
-                    label: Text(isHost ? 'You host this game' : actionLabel),
+                    label: Text(
+                      isHost
+                          ? tr('You host this game', 'أنت هوست هذه المباراة')
+                          : actionText(actionLabel),
+                    ),
                   ),
                 ),
               ],

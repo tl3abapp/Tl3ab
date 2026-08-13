@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/theme/app_theme.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -34,6 +35,9 @@ class ProfilePage extends StatelessWidget {
     final isDeactivated =
         (controller.isCurrentAccountDeactivated as bool?) ?? false;
     final deletionDate = controller.currentAccountDeletionDate as DateTime?;
+    final languageCode = controller.generalSettings.languageCode.toString();
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
 
     final showEmail = (privacy?.showEmailOnProfile as bool?) ?? true;
     final showPhone = (privacy?.showPhoneOnProfile as bool?) ?? true;
@@ -79,9 +83,9 @@ class ProfilePage extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Text(
-                        'Profile',
-                        style: TextStyle(
+                      Text(
+                        tr('Profile', 'الملف الشخصي'),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -138,7 +142,7 @@ class ProfilePage extends StatelessWidget {
                                   Icons.camera_alt_outlined,
                                   size: 18,
                                 ),
-                                tooltip: 'Change photo',
+                                tooltip: tr('Change photo', 'تغيير الصورة'),
                               ),
                             ),
                           ],
@@ -173,9 +177,16 @@ class ProfilePage extends StatelessWidget {
                             ),
                             _heroChip(
                               Icons.groups_2_outlined,
-                              '$friends friends',
+                              appIsArabic(languageCode)
+                                  ? '$friends أصدقاء'
+                                  : '$friends friends',
                             ),
-                            _heroChip(Icons.sports_tennis, '$games games'),
+                            _heroChip(
+                              Icons.sports_tennis,
+                              appIsArabic(languageCode)
+                                  ? '$games مباريات'
+                                  : '$games games',
+                            ),
                           ],
                         ),
                       ],
@@ -200,9 +211,14 @@ class ProfilePage extends StatelessWidget {
                           Expanded(
                             child: Text(
                               deletionDate == null
-                                  ? 'Account is deactivated.'
-                                  : 'Account paused. Auto-delete: '
-                                        '${deletionDate.day}/${deletionDate.month}/${deletionDate.year}',
+                                  ? tr(
+                                      'Account is deactivated.',
+                                      'الحساب موقوف.',
+                                    )
+                                  : tr(
+                                      'Account paused. Auto-delete: ${deletionDate.day}/${deletionDate.month}/${deletionDate.year}',
+                                      'الحساب موقوف. الحذف التلقائي: ${deletionDate.day}/${deletionDate.month}/${deletionDate.year}',
+                                    ),
                               style: const TextStyle(
                                 color: Color(0xFF7A271A),
                                 fontWeight: FontWeight.w700,
@@ -216,11 +232,11 @@ class ProfilePage extends StatelessWidget {
                   const SizedBox(height: 14),
                   Row(
                     children: [
-                      _statCard('Games', '$games'),
+                      _statCard(tr('Games', 'المباريات'), '$games'),
                       const SizedBox(width: 8),
-                      _statCard('Friends', '$friends'),
+                      _statCard(tr('Friends', 'الأصدقاء'), '$friends'),
                       const SizedBox(width: 8),
-                      _statCard('Circle', '$circle'),
+                      _statCard(tr('Circle', 'السيركل'), '$circle'),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -228,10 +244,17 @@ class ProfilePage extends StatelessWidget {
                     children: [
                       _miniStat(
                         Icons.people_alt_outlined,
-                        '$followers Followers',
+                        appIsArabic(languageCode)
+                            ? '$followers متابعين'
+                            : '$followers Followers',
                       ),
                       const SizedBox(width: 8),
-                      _miniStat(Icons.person_add_alt_1, '$following Following'),
+                      _miniStat(
+                        Icons.person_add_alt_1,
+                        appIsArabic(languageCode)
+                            ? '$following أتابع'
+                            : '$following Following',
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -242,26 +265,26 @@ class ProfilePage extends StatelessWidget {
                         children: [
                           _menuTile(
                             icon: Icons.sports_tennis,
-                            title: 'My Games',
+                            title: tr('My Games', 'مبارياتي'),
                             trailingText: '$games',
                             onTap: onOpenMyGames,
                           ),
                           const Divider(height: 1),
                           _menuTile(
                             icon: Icons.group_outlined,
-                            title: 'Friends',
+                            title: tr('Friends', 'الأصدقاء'),
                             onTap: onOpenFriends,
                           ),
                           const Divider(height: 1),
                           _menuTile(
                             icon: Icons.people_outline,
-                            title: 'My Circle',
+                            title: tr('My Circle', 'السيركل'),
                             onTap: onOpenCircle,
                           ),
                           const Divider(height: 1),
                           _menuTile(
                             icon: Icons.settings_outlined,
-                            title: 'Settings',
+                            title: tr('Settings', 'الإعدادات'),
                             onTap: onOpenSettings,
                           ),
                         ],
@@ -276,27 +299,27 @@ class ProfilePage extends StatelessWidget {
                         children: [
                           _infoTile(
                             icon: Icons.email_outlined,
-                            label: 'Email',
+                            label: tr('Email', 'البريد'),
                             value: showEmail
                                 ? (user?.email ?? '-').toString()
-                                : 'Hidden by privacy',
+                                : tr('Hidden by privacy', 'مخفي بسبب الخصوصية'),
                           ),
                           const Divider(height: 1),
                           _infoTile(
                             icon: Icons.phone_outlined,
-                            label: 'Phone',
+                            label: tr('Phone', 'الهاتف'),
                             value: showPhone
                                 ? (user?.phoneNumber ?? '-').toString()
-                                : 'Hidden by privacy',
+                                : tr('Hidden by privacy', 'مخفي بسبب الخصوصية'),
                           ),
                           const Divider(height: 1),
                           _infoTile(
                             icon: Icons.location_on_outlined,
-                            label: 'Area',
+                            label: tr('Area', 'المنطقة'),
                             value: showArea
                                 ? (user?.area ?? controller.selectedArea)
                                       .toString()
-                                : 'Hidden by privacy',
+                                : tr('Hidden by privacy', 'مخفي بسبب الخصوصية'),
                           ),
                         ],
                       ),
@@ -311,7 +334,7 @@ class ProfilePage extends StatelessWidget {
                     ),
                     onPressed: onSignOut,
                     icon: const Icon(Icons.logout),
-                    label: const Text('Sign out'),
+                    label: Text(tr('Sign out', 'تسجيل الخروج')),
                   ),
                 ],
               ),
@@ -368,6 +391,9 @@ class ProfilePage extends StatelessWidget {
     BuildContext context,
     dynamic controller,
   ) async {
+    final languageCode = controller.generalSettings.languageCode.toString();
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
     final action = await showModalBottomSheet<String>(
       context: context,
       builder: (context) {
@@ -377,12 +403,12 @@ class ProfilePage extends StatelessWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Choose photo'),
+                title: Text(tr('Choose photo', 'اختيار صورة')),
                 onTap: () => Navigator.of(context).pop('pick'),
               ),
               ListTile(
                 leading: const Icon(Icons.delete_outline),
-                title: const Text('Remove photo'),
+                title: Text(tr('Remove photo', 'إزالة الصورة')),
                 onTap: () => Navigator.of(context).pop('remove'),
               ),
             ],

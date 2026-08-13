@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/theme/app_theme.dart';
 
 class ChatThreadPage extends StatefulWidget {
@@ -63,13 +64,17 @@ class _ChatThreadPageState extends State<ChatThreadPage> {
       animation: widget.controller,
       builder: (context, _) {
         final thread = widget.controller.getThreadById(widget.threadId);
+        final languageCode = widget.controller.generalSettings.languageCode
+            .toString();
+        String tr(String english, String arabic) =>
+            appText(languageCode, english, arabic);
         if (thread == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Chat')),
-            body: const Center(
+            appBar: AppBar(title: Text(tr('Chat', 'المحادثة'))),
+            body: Center(
               child: Text(
-                'Thread not found',
-                style: TextStyle(color: AppColors.muted),
+                tr('Thread not found', 'المحادثة غير موجودة'),
+                style: const TextStyle(color: AppColors.muted),
               ),
             ),
           );
@@ -111,7 +116,9 @@ class _ChatThreadPageState extends State<ChatThreadPage> {
                                 ),
                               ),
                               Text(
-                                '${messages.length} messages',
+                                appIsArabic(languageCode)
+                                    ? '${messages.length} رسائل'
+                                    : '${messages.length} messages',
                                 style: const TextStyle(
                                   color: AppColors.muted,
                                   fontWeight: FontWeight.w600,
@@ -140,10 +147,10 @@ class _ChatThreadPageState extends State<ChatThreadPage> {
                 ),
                 Expanded(
                   child: messages.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
-                            'No messages yet',
-                            style: TextStyle(color: AppColors.muted),
+                            tr('No messages yet', 'لا توجد رسائل بعد'),
+                            style: const TextStyle(color: AppColors.muted),
                           ),
                         )
                       : ListView.separated(
@@ -280,8 +287,11 @@ class _ChatThreadPageState extends State<ChatThreadPage> {
                             textCapitalization: TextCapitalization.sentences,
                             minLines: 1,
                             maxLines: 4,
-                            decoration: const InputDecoration(
-                              hintText: 'Type a message...',
+                            decoration: InputDecoration(
+                              hintText: tr(
+                                'Type a message...',
+                                'اكتب رسالة...',
+                              ),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,

@@ -4316,9 +4316,16 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> _signIn(PadelAppController controller) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
+    final languageCode = controller.generalSettings.languageCode;
 
     if (email.isEmpty || password.isEmpty) {
-      _showSnack('Enter email and password.');
+      _showSnack(
+        appText(
+          languageCode,
+          'Enter email and password.',
+          'أدخل البريد وكلمة المرور.',
+        ),
+      );
       return;
     }
 
@@ -4328,12 +4335,18 @@ class _SignInScreenState extends State<SignInScreen> {
       if (!mounted) {
         return;
       }
-      _showSnack('Signed in.');
+      _showSnack(appText(languageCode, 'Signed in.', 'تم تسجيل الدخول.'));
     } catch (_) {
       if (!mounted) {
         return;
       }
-      _showSnack('Invalid sign in data.');
+      _showSnack(
+        appText(
+          languageCode,
+          'Invalid sign in data.',
+          'بيانات تسجيل الدخول غير صحيحة.',
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -4350,10 +4363,17 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = PadelAppScope.of(context);
+    final languageCode = controller.generalSettings.languageCode;
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
-          children: [Icon(Icons.login), SizedBox(width: 8), Text('Sign In')],
+        title: Row(
+          children: [
+            const Icon(Icons.login),
+            const SizedBox(width: 8),
+            Text(tr('Sign In', 'تسجيل الدخول')),
+          ],
         ),
       ),
       body: SafeArea(
@@ -4367,10 +4387,13 @@ class _SignInScreenState extends State<SignInScreen> {
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Email, username, or phone',
-                prefixIcon: Icon(Icons.email_outlined),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: tr(
+                  'Email, username, or phone',
+                  'البريد أو اسم المستخدم أو الهاتف',
+                ),
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 10),
@@ -4378,10 +4401,10 @@ class _SignInScreenState extends State<SignInScreen> {
               controller: _passwordController,
               obscureText: true,
               textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                prefixIcon: Icon(Icons.lock_outline),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: tr('Password', 'كلمة المرور'),
+                prefixIcon: const Icon(Icons.lock_outline),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 14),
@@ -4396,7 +4419,11 @@ class _SignInScreenState extends State<SignInScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.login),
-                label: Text(_loading ? 'Signing in...' : 'Sign In'),
+                label: Text(
+                  _loading
+                      ? tr('Signing in...', 'جاري تسجيل الدخول...')
+                      : tr('Sign In', 'تسجيل الدخول'),
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -4409,7 +4436,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 );
               },
               icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('Create Account'),
+              label: Text(tr('Create Account', 'إنشاء حساب')),
             ),
           ],
         ),
@@ -4474,13 +4501,20 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final area = _area ?? controller.selectedArea;
+    final languageCode = controller.generalSettings.languageCode;
 
     if (name.length < 2 ||
         handle.length < 2 ||
         phone.isEmpty ||
         email.isEmpty ||
         password.length < 6) {
-      _showSnack('Fill all fields first.');
+      _showSnack(
+        appText(
+          languageCode,
+          'Fill all fields first.',
+          'املأ كل البيانات أولاً.',
+        ),
+      );
       return;
     }
 
@@ -4499,13 +4533,19 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       if (!mounted) {
         return;
       }
-      _showSnack('Account created. Signed in.');
+      _showSnack(
+        appText(
+          languageCode,
+          'Account created. Signed in.',
+          'تم إنشاء الحساب وتسجيل الدخول.',
+        ),
+      );
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _showSnack(_friendlyCreateError(error));
+      _showSnack(_friendlyCreateError(error, languageCode));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -4519,7 +4559,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  String _friendlyCreateError(Object error) {
+  String _friendlyCreateError(Object error, String languageCode) {
     final raw = error.toString();
     final message = raw.replaceFirst("Exception: ", "").trim();
 
@@ -4527,20 +4567,36 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         message.contains("Connection refused") ||
         message.contains("SocketException")) {
       return kReleaseMode
-          ? "Cannot reach service. Please try again shortly."
+          ? appText(
+              languageCode,
+              "Cannot reach service. Please try again shortly.",
+              "تعذر الوصول للخدمة. حاول مرة ثانية بعد قليل.",
+            )
           : "Cannot reach API. Start backend on http://127.0.0.1:3000";
     }
 
     if (message.contains("Missing production API URL")) {
-      return "Production API URL is missing. Rebuild with PADEL_API_URL.";
+      return appText(
+        languageCode,
+        "Production API URL is missing. Rebuild with PADEL_API_URL.",
+        "رابط خدمة الإنتاج غير موجود. أعد البناء مع PADEL_API_URL.",
+      );
     }
 
     if (message.contains("/users") && message.contains("404")) {
-      return "API route not found. Check base URL and backend routes.";
+      return appText(
+        languageCode,
+        "API route not found. Check base URL and backend routes.",
+        "مسار الخدمة غير موجود. تحقق من رابط الخدمة.",
+      );
     }
 
     if (message.isEmpty) {
-      return "Could not create account. Check data and API.";
+      return appText(
+        languageCode,
+        "Could not create account. Check data and API.",
+        "تعذر إنشاء الحساب. تحقق من البيانات والخدمة.",
+      );
     }
 
     return message;
@@ -4549,6 +4605,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = PadelAppScope.of(context);
+    final languageCode = controller.generalSettings.languageCode;
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
     _area ??= controller.selectedArea;
     final currentYear = DateTime.now().year;
     final years = List<int>.generate(60, (index) => currentYear - 12 - index);
@@ -4558,7 +4617,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Create User')),
+      appBar: AppBar(title: Text(tr('Create User', 'إنشاء مستخدم'))),
       body: SafeArea(
         child: ListView(
           padding: EdgeInsets.all(pagePadding(context)),
@@ -4591,20 +4650,20 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             TextField(
               controller: _nameController,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                prefixIcon: Icon(Icons.badge_outlined),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: tr('Name', 'الاسم'),
+                prefixIcon: const Icon(Icons.badge_outlined),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _handleController,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                prefixIcon: Icon(Icons.alternate_email),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: tr('Username', 'اسم المستخدم'),
+                prefixIcon: const Icon(Icons.alternate_email),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 10),
@@ -4612,10 +4671,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Phone',
-                prefixIcon: Icon(Icons.phone_outlined),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: tr('Phone', 'الهاتف'),
+                prefixIcon: const Icon(Icons.phone_outlined),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 10),
@@ -4623,10 +4682,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: tr('Email', 'البريد'),
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 10),
@@ -4634,20 +4693,20 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               controller: _passwordController,
               obscureText: true,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                hintText: 'Min 6 characters',
-                prefixIcon: Icon(Icons.lock_outline),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: tr('Password', 'كلمة المرور'),
+                hintText: tr('Min 6 characters', '٦ أحرف على الأقل'),
+                prefixIcon: const Icon(Icons.lock_outline),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               initialValue: _area,
-              decoration: const InputDecoration(
-                labelText: 'Area',
-                prefixIcon: Icon(Icons.location_on_outlined),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: tr('Area', 'المنطقة'),
+                prefixIcon: const Icon(Icons.location_on_outlined),
+                border: const OutlineInputBorder(),
               ),
               items: controller.areas
                   .map(
@@ -4703,14 +4762,18 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.check_circle_outline),
-                label: Text(_saving ? 'Creating...' : 'Create Account'),
+                label: Text(
+                  _saving
+                      ? tr('Creating...', 'جاري الإنشاء...')
+                      : tr('Create Account', 'إنشاء حساب'),
+                ),
               ),
             ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.login),
-              label: const Text('Back to Sign In'),
+              label: Text(tr('Back to Sign In', 'الرجوع لتسجيل الدخول')),
             ),
           ],
         ),
@@ -4719,12 +4782,13 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   Widget _birthDayField(int maxDay) {
+    final languageCode = PadelAppScope.of(context).generalSettings.languageCode;
     return DropdownButtonFormField<int>(
       initialValue: _birthDay,
       isExpanded: true,
-      decoration: const InputDecoration(
-        labelText: 'Day',
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: appText(languageCode, 'Day', 'اليوم'),
+        border: const OutlineInputBorder(),
       ),
       items: List<int>.generate(maxDay, (index) => index + 1)
           .map((day) => DropdownMenuItem<int>(value: day, child: Text('$day')))
@@ -4739,12 +4803,13 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   Widget _birthMonthField() {
+    final languageCode = PadelAppScope.of(context).generalSettings.languageCode;
     return DropdownButtonFormField<int>(
       initialValue: _birthMonth,
       isExpanded: true,
-      decoration: const InputDecoration(
-        labelText: 'Month',
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: appText(languageCode, 'Month', 'الشهر'),
+        border: const OutlineInputBorder(),
       ),
       items: List<int>.generate(12, (index) => index + 1)
           .map(
@@ -4762,12 +4827,13 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   Widget _birthYearField(List<int> years) {
+    final languageCode = PadelAppScope.of(context).generalSettings.languageCode;
     return DropdownButtonFormField<int>(
       initialValue: _birthYear,
       isExpanded: true,
-      decoration: const InputDecoration(
-        labelText: 'Year',
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: appText(languageCode, 'Year', 'السنة'),
+        border: const OutlineInputBorder(),
       ),
       items: years
           .map(

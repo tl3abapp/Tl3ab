@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/theme/app_theme.dart';
 
 class CreateGamePage extends StatefulWidget {
@@ -27,6 +28,13 @@ class _CreateGamePageState extends State<CreateGamePage> {
   String _ratingFilter = 'all';
   String _hostSide = 'left';
   Uint8List? _courtPhotoBytes;
+
+  String get _languageCode =>
+      widget.controller.generalSettings.languageCode.toString();
+
+  String _tr(String english, String arabic) {
+    return appText(_languageCode, english, arabic);
+  }
 
   @override
   void initState() {
@@ -92,12 +100,12 @@ class _CreateGamePageState extends State<CreateGamePage> {
         : _areaController.text.trim();
 
     if (title.isEmpty || area.isEmpty) {
-      _showSnack('Add title and area.');
+      _showSnack(_tr('Add title and area.', 'أضف العنوان والمنطقة.'));
       return;
     }
 
     if (_targetKey == 'selected' && _selectedUserIds.isEmpty) {
-      _showSnack('Pick at least one user.');
+      _showSnack(_tr('Pick at least one user.', 'اختر لاعب واحد على الأقل.'));
       return;
     }
 
@@ -130,14 +138,16 @@ class _CreateGamePageState extends State<CreateGamePage> {
 
       final inviteLink = result.match.inviteLink?.toString() ?? '';
       _showSnack(
-        inviteLink.isEmpty ? result.message.toString() : 'Game + link created.',
+        inviteLink.isEmpty
+            ? result.message.toString()
+            : _tr('Game + link created.', 'تم إنشاء المباراة والرابط.'),
       );
       Navigator.of(context).pop(result);
     } catch (_) {
       if (!mounted) {
         return;
       }
-      _showSnack('Could not create game.');
+      _showSnack(_tr('Could not create game.', 'تعذر إنشاء المباراة.'));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -166,15 +176,18 @@ class _CreateGamePageState extends State<CreateGamePage> {
         final showPlayerPicker = _targetKey != 'public';
         final selectedCount = _selectedUserIds.length;
         final targetHelp = switch (_targetKey) {
-          'circle' => 'Circle joins directly',
-          'friends' => 'Friends join directly',
-          'public' => 'Public sends request',
-          _ => 'Selected users join directly',
+          'circle' => _tr('Circle joins directly', 'السيركل ينضمون مباشرة'),
+          'friends' => _tr('Friends join directly', 'الأصدقاء ينضمون مباشرة'),
+          'public' => _tr('Public sends request', 'العامة يرسلون طلب انضمام'),
+          _ => _tr(
+            'Selected users join directly',
+            'اللاعبون المختارون ينضمون مباشرة',
+          ),
         };
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Create Game'),
+            title: Text(_tr('Create Game', 'إنشاء مباراة')),
             leading: const BackButton(),
           ),
           body: ListView(
@@ -182,16 +195,16 @@ class _CreateGamePageState extends State<CreateGamePage> {
             children: [
               TextField(
                 controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  prefixIcon: Icon(Icons.sports_tennis),
+                decoration: InputDecoration(
+                  labelText: _tr('Title', 'العنوان'),
+                  prefixIcon: const Icon(Icons.sports_tennis),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _areaController,
                 decoration: InputDecoration(
-                  labelText: 'Area',
+                  labelText: _tr('Area', 'المنطقة'),
                   prefixIcon: const Icon(Icons.location_on_outlined),
                   hintText: (widget.controller.selectedArea ?? 'Kuwait City')
                       .toString(),
@@ -220,9 +233,9 @@ class _CreateGamePageState extends State<CreateGamePage> {
               const SizedBox(height: 14),
               _courtPhotoPicker(),
               const SizedBox(height: 14),
-              const Text(
-                'Your side',
-                style: TextStyle(fontWeight: FontWeight.w800),
+              Text(
+                _tr('Your side', 'جهتك'),
+                style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
               SegmentedButton<String>(
@@ -231,33 +244,45 @@ class _CreateGamePageState extends State<CreateGamePage> {
                 onSelectionChanged: (selection) {
                   setState(() => _hostSide = selection.first);
                 },
-                segments: const [
+                segments: [
                   ButtonSegment<String>(
                     value: 'left',
-                    icon: Icon(Icons.keyboard_double_arrow_left),
-                    label: Text('Left'),
+                    icon: const Icon(Icons.keyboard_double_arrow_left),
+                    label: Text(_tr('Left', 'يسار')),
                   ),
                   ButtonSegment<String>(
                     value: 'right',
-                    icon: Icon(Icons.keyboard_double_arrow_right),
-                    label: Text('Right'),
+                    icon: const Icon(Icons.keyboard_double_arrow_right),
+                    label: Text(_tr('Right', 'يمين')),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Target',
-                style: TextStyle(fontWeight: FontWeight.w800),
+              Text(
+                _tr('Target', 'المستهدفون'),
+                style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _targetChip('circle', Icons.people_alt_outlined, 'Circle'),
-                  _targetChip('friends', Icons.group_outlined, 'Friends'),
-                  _targetChip('public', Icons.public, 'Public'),
-                  _targetChip('selected', Icons.how_to_reg_outlined, 'Pick'),
+                  _targetChip(
+                    'circle',
+                    Icons.people_alt_outlined,
+                    _tr('Circle', 'السيركل'),
+                  ),
+                  _targetChip(
+                    'friends',
+                    Icons.group_outlined,
+                    _tr('Friends', 'الأصدقاء'),
+                  ),
+                  _targetChip('public', Icons.public, _tr('Public', 'عام')),
+                  _targetChip(
+                    'selected',
+                    Icons.how_to_reg_outlined,
+                    _tr('Pick', 'اختيار'),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -290,7 +315,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
                                 });
                               },
                         icon: const Icon(Icons.done_all, size: 18),
-                        label: const Text('Select shown'),
+                        label: Text(_tr('Select shown', 'اختيار الظاهرين')),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -302,16 +327,16 @@ class _CreateGamePageState extends State<CreateGamePage> {
                                 setState(_selectedUserIds.clear);
                               },
                         icon: const Icon(Icons.clear_all, size: 18),
-                        label: const Text('Clear'),
+                        label: Text(_tr('Clear', 'مسح')),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 if (filteredUsers.isEmpty)
-                  const Text(
-                    'No users found.',
-                    style: TextStyle(color: AppColors.muted),
+                  Text(
+                    _tr('No users found.', 'لا يوجد لاعبون.'),
+                    style: const TextStyle(color: AppColors.muted),
                   )
                 else
                   ...filteredUsers.map((user) {
@@ -349,7 +374,11 @@ class _CreateGamePageState extends State<CreateGamePage> {
                   ),
                 ),
                 icon: const Icon(Icons.send_outlined),
-                label: Text(_saving ? 'Creating...' : 'Create'),
+                label: Text(
+                  _saving
+                      ? _tr('Creating...', 'جاري الإنشاء...')
+                      : _tr('Create', 'إنشاء'),
+                ),
               ),
             ],
           ),
@@ -364,16 +393,16 @@ class _CreateGamePageState extends State<CreateGamePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Court photo',
-          style: TextStyle(fontWeight: FontWeight.w800),
+        Text(
+          _tr('Court photo', 'صورة حجز الملعب'),
+          style: const TextStyle(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         if (photoBytes == null)
           OutlinedButton.icon(
             onPressed: _pickCourtPhoto,
             icon: const Icon(Icons.add_photo_alternate_outlined),
-            label: const Text('Upload court photo'),
+            label: Text(_tr('Upload court photo', 'رفع صورة الحجز')),
           )
         else
           ClipRRect(
@@ -392,11 +421,11 @@ class _CreateGamePageState extends State<CreateGamePage> {
                       FilledButton.tonalIcon(
                         onPressed: _pickCourtPhoto,
                         icon: const Icon(Icons.swap_horiz, size: 18),
-                        label: const Text('Change'),
+                        label: Text(_tr('Change', 'تغيير')),
                       ),
                       const SizedBox(width: 8),
                       IconButton.filledTonal(
-                        tooltip: 'Remove photo',
+                        tooltip: _tr('Remove photo', 'إزالة الصورة'),
                         onPressed: () =>
                             setState(() => _courtPhotoBytes = null),
                         icon: const Icon(Icons.close),
@@ -435,14 +464,28 @@ class _CreateGamePageState extends State<CreateGamePage> {
   String _playerPickerHelp(int selectedCount) {
     if (_targetKey == 'selected') {
       return selectedCount == 0
-          ? 'Pick the players who can join directly.'
-          : '$selectedCount selected. They can join directly.';
+          ? _tr(
+              'Pick the players who can join directly.',
+              'اختر اللاعبين اللي ينضمون مباشرة.',
+            )
+          : _tr(
+              '$selectedCount selected. They can join directly.',
+              'تم اختيار $selectedCount. يقدرون ينضمون مباشرة.',
+            );
     }
 
-    final group = _targetKey == 'friends' ? 'friends' : 'circle players';
+    final group = _targetKey == 'friends'
+        ? _tr('friends', 'الأصدقاء')
+        : _tr('circle players', 'لاعبو السيركل');
     return selectedCount == 0
-        ? 'Filter or select players. If none are selected, all $group will receive it.'
-        : '$selectedCount selected. Only these $group will receive it.';
+        ? _tr(
+            'Filter or select players. If none are selected, all $group will receive it.',
+            'فلتر أو اختر لاعبين. إذا ما اخترت أحد، راح توصل لكل $group.',
+          )
+        : _tr(
+            '$selectedCount selected. Only these $group will receive it.',
+            'تم اختيار $selectedCount. فقط هؤلاء من $group راح توصلهم.',
+          );
   }
 
   bool _matchesRatingFilter(dynamic user) {
@@ -462,11 +505,11 @@ class _CreateGamePageState extends State<CreateGamePage> {
       spacing: 8,
       runSpacing: 8,
       children: [
-        _ratingFilterChip('all', 'All'),
-        _ratingFilterChip('beginner', 'Beginner'),
-        _ratingFilterChip('intermediate', 'Intermediate'),
-        _ratingFilterChip('pro', 'Pro'),
-        _ratingFilterChip('unrated', 'Unrated'),
+        _ratingFilterChip('all', _tr('All', 'الكل')),
+        _ratingFilterChip('beginner', _tr('Beginner', 'مبتدئ')),
+        _ratingFilterChip('intermediate', _tr('Intermediate', 'متوسط')),
+        _ratingFilterChip('pro', _tr('Pro', 'محترف')),
+        _ratingFilterChip('unrated', _tr('Unrated', 'بدون تقييم')),
       ],
     );
   }
