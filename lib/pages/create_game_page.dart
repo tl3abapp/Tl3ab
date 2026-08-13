@@ -24,10 +24,12 @@ class _CreateGamePageState extends State<CreateGamePage> {
   DateTime _date = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _time = const TimeOfDay(hour: 20, minute: 30);
   bool _saving = false;
+  bool _scheduledGame = false;
   String _targetKey = 'circle';
   String _ratingFilter = 'all';
   String _hostSide = 'left';
   Uint8List? _courtPhotoBytes;
+  final List<DateTime> _extraTimeOptions = [];
 
   String get _languageCode =>
       widget.controller.generalSettings.languageCode.toString();
@@ -75,6 +77,57 @@ class _CreateGamePageState extends State<CreateGamePage> {
     }
   }
 
+  DateTime get _primaryStartTime =>
+      DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
+
+  Future<void> _addTimeOption() async {
+    if (_extraTimeOptions.length >= 2) {
+      _showSnack(
+        _tr('You can add up to 3 time choices.', 'تقدر تضيف إلى ٣ اختيارات.'),
+      );
+      return;
+    }
+
+    final initial = _extraTimeOptions.isEmpty
+        ? _primaryStartTime.add(const Duration(hours: 1))
+        : _extraTimeOptions.last.add(const Duration(hours: 1));
+    final pickedDate = await showDatePicker(
+      context: context,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: initial,
+    );
+    if (pickedDate == null || !mounted) {
+      return;
+    }
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (pickedTime == null || !mounted) {
+      return;
+    }
+
+    final option = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+    final duplicate = [
+      _primaryStartTime,
+      ..._extraTimeOptions,
+    ].any((time) => time.isAtSameMomentAs(option));
+    if (duplicate) {
+      _showSnack(_tr('Time already added.', 'هذا الوقت مضاف من قبل.'));
+      return;
+    }
+
+    setState(() => _extraTimeOptions.add(option));
+  }
+
   Future<void> _pickCourtPhoto() async {
     final file = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -109,13 +162,17 @@ class _CreateGamePageState extends State<CreateGamePage> {
       return;
     }
 
-    final startsAt = DateTime(
-      _date.year,
-      _date.month,
-      _date.day,
-      _time.hour,
-      _time.minute,
-    );
+    final startsAt = _primaryStartTime;
+
+    if (_scheduledGame && _extraTimeOptions.isEmpty) {
+      _showSnack(
+        _tr(
+          'Add at least one more time choice.',
+          'أضف اختيار وقت ثاني على الأقل.',
+        ),
+      );
+      return;
+    }
 
     setState(() => _saving = true);
     try {
@@ -124,6 +181,9 @@ class _CreateGamePageState extends State<CreateGamePage> {
         title: title,
         area: area,
         startTime: startsAt,
+        timeOptions: _scheduledGame
+            ? _extraTimeOptions.toList(growable: false)
+            : const [],
         scope: scope,
         selectedUserIds: _selectedUserIds.toList(growable: false),
         hostSide: _hostSide,
@@ -230,6 +290,8 @@ class _CreateGamePageState extends State<CreateGamePage> {
                   ),
                 ],
               ),
+              const SizedBox(height: 14),
+              _scheduleOptionsSection(),
               const SizedBox(height: 14),
               _courtPhotoPicker(),
               const SizedBox(height: 14),
@@ -438,6 +500,108 @@ class _CreateGamePageState extends State<CreateGamePage> {
           ),
       ],
     );
+  }
+
+  Widget _scheduleOptionsSection() {
+    final primaryLabel = _formatDateTime(_primaryStartTime);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.stroke),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            value: _scheduledGame,
+            onChanged: (value) {
+              setState(() {
+                _scheduledGame = value;
+                if (!value) {
+                  _extraTimeOptions.clear();
+                }
+              });
+            },
+            title: Text(
+              _tr('Scheduled game', 'لعبة مجدولة'),
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            subtitle: Text(
+              _tr(
+                'Invitees can choose from the time options.',
+                'المدعوون يختارون من أوقات اللعب المقترحة.',
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _tr('Play scheduling', 'جدولة اللعب'),
+            style: const TextStyle(
+              color: AppColors.green,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _timeOptionRow(
+            label: _tr('Main time', 'الوقت الأساسي'),
+            value: primaryLabel,
+            onDelete: null,
+          ),
+          if (_scheduledGame) ...[
+            ..._extraTimeOptions.asMap().entries.map(
+              (entry) => _timeOptionRow(
+                label: _tr(
+                  'Option ${entry.key + 2}',
+                  'الاختيار ${entry.key + 2}',
+                ),
+                value: _formatDateTime(entry.value),
+                onDelete: () {
+                  setState(() => _extraTimeOptions.removeAt(entry.key));
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _extraTimeOptions.length >= 2 ? null : _addTimeOption,
+              icon: const Icon(Icons.add_alarm_outlined),
+              label: Text(_tr('Add time choice', 'إضافة اختيار وقت')),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _timeOptionRow({
+    required String label,
+    required String value,
+    required VoidCallback? onDelete,
+  }) {
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.schedule_outlined, color: AppColors.green),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+      subtitle: Text(value),
+      trailing: onDelete == null
+          ? null
+          : IconButton(
+              tooltip: _tr('Remove', 'إزالة'),
+              onPressed: onDelete,
+              icon: const Icon(Icons.close),
+            ),
+    );
+  }
+
+  String _formatDateTime(DateTime value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '${value.day}/${value.month}/${value.year}, $hour:$minute';
   }
 
   Widget _targetChip(String key, IconData icon, String label) {

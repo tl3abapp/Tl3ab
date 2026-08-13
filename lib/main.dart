@@ -293,6 +293,28 @@ class GeneralSettings {
   }
 }
 
+class MatchTimeOption {
+  const MatchTimeOption({
+    required this.id,
+    required this.startTime,
+    this.voterIds = const [],
+  });
+
+  final String id;
+  final DateTime startTime;
+  final List<String> voterIds;
+
+  int get voteCount => voterIds.length;
+
+  MatchTimeOption copyWith({DateTime? startTime, List<String>? voterIds}) {
+    return MatchTimeOption(
+      id: id,
+      startTime: startTime ?? this.startTime,
+      voterIds: voterIds ?? this.voterIds,
+    );
+  }
+}
+
 class PadelMatch {
   PadelMatch({
     required this.id,
@@ -311,6 +333,7 @@ class PadelMatch {
     required this.visibility,
     this.inviteCode,
     this.inviteLink,
+    this.timeOptions = const [],
     this.participants = const [],
   });
 
@@ -330,10 +353,12 @@ class PadelMatch {
   final MatchVisibility visibility;
   final String? inviteCode;
   final String? inviteLink;
+  final List<MatchTimeOption> timeOptions;
   final List<MatchParticipantSummary> participants;
 
   bool get hasOpenSpot => joinedPlayers < maxPlayers;
   int get openSpots => maxPlayers - joinedPlayers;
+  bool get isScheduledGame => timeOptions.length > 1;
 
   PadelMatch copyWith({
     String? title,
@@ -351,6 +376,7 @@ class PadelMatch {
     MatchVisibility? visibility,
     String? inviteCode,
     String? inviteLink,
+    List<MatchTimeOption>? timeOptions,
     List<MatchParticipantSummary>? participants,
   }) {
     return PadelMatch(
@@ -370,6 +396,7 @@ class PadelMatch {
       visibility: visibility ?? this.visibility,
       inviteCode: inviteCode ?? this.inviteCode,
       inviteLink: inviteLink ?? this.inviteLink,
+      timeOptions: timeOptions ?? this.timeOptions,
       participants: participants ?? this.participants,
     );
   }
@@ -1767,6 +1794,7 @@ class PadelAppController extends ChangeNotifier {
     required String title,
     required String area,
     required DateTime startTime,
+    List<DateTime> timeOptions = const [],
     required MatchTargetScope scope,
     List<String> selectedUserIds = const [],
     SkillLevel skillLevel = SkillLevel.intermediate,
@@ -1792,6 +1820,7 @@ class PadelAppController extends ChangeNotifier {
           skillMax: _skillRangeForLevel(skillLevel).$2,
           hostSide: hostSide,
           courtPhotoData: courtPhotoData,
+          timeOptions: _timeOptionsToIso(startTime, timeOptions),
         );
 
         await syncFromApi();
@@ -1826,6 +1855,7 @@ class PadelAppController extends ChangeNotifier {
       courtName: 'Pending Court',
       courtPhotoData: courtPhotoData,
       startTime: startTime,
+      timeOptions: _buildLocalTimeOptions(startTime, timeOptions),
       distanceKm: 0.0,
       maxPlayers: 4,
       joinedPlayers: 1,
@@ -3253,6 +3283,7 @@ class PadelAppController extends ChangeNotifier {
   Future<String> updateHostedMatchDetails(
     String matchId, {
     DateTime? startTime,
+    List<DateTime> timeOptions = const [],
     String? courtName,
     String? courtPhotoData,
   }) async {
@@ -3272,6 +3303,9 @@ class PadelAppController extends ChangeNotifier {
         startsAtIso: startTime?.toIso8601String(),
         courtName: courtName,
         courtPhotoData: courtPhotoData,
+        timeOptions: startTime == null
+            ? const []
+            : _timeOptionsToIso(startTime, timeOptions),
       );
       await syncFromApi();
       return startTime == null
@@ -3280,6 +3314,9 @@ class PadelAppController extends ChangeNotifier {
     } catch (_) {
       final updated = match.copyWith(
         startTime: startTime,
+        timeOptions: startTime == null
+            ? match.timeOptions
+            : _buildLocalTimeOptions(startTime, timeOptions),
         courtName: courtName == null || courtName.trim().isEmpty
             ? match.courtName
             : courtName.trim(),
@@ -3292,6 +3329,42 @@ class PadelAppController extends ChangeNotifier {
       return startTime == null
           ? 'Game updated locally.'
           : 'Game time updated locally.';
+    }
+  }
+
+  Future<String> voteForMatchTimeOption(String matchId, String optionId) async {
+    final me = _currentUser;
+    final match = matchById(matchId);
+    if (me == null || match == null || match.timeOptions.length <= 1) {
+      return 'Could not choose this time.';
+    }
+
+    try {
+      await _api.voteMatchTimeOption(
+        matchId: matchId,
+        userId: me.id,
+        optionId: optionId,
+      );
+      await syncFromApi();
+      return 'Time choice saved.';
+    } catch (_) {
+      final options = match.timeOptions
+          .map((option) {
+            final votes = option.voterIds.where((id) => id != me.id).toList();
+            if (option.id == optionId) {
+              votes.add(me.id);
+            }
+            return option.copyWith(voterIds: votes);
+          })
+          .toList(growable: false);
+      final selected = options
+          .where((option) => option.id == optionId)
+          .firstOrNull;
+      _replaceLocalMatch(
+        match.copyWith(startTime: selected?.startTime, timeOptions: options),
+      );
+      notifyListeners();
+      return 'Time choice saved locally.';
     }
   }
 
@@ -3674,6 +3747,15 @@ class PadelAppController extends ChangeNotifier {
       'visibility': match.visibility.name,
       'inviteCode': match.inviteCode,
       'inviteLink': match.inviteLink,
+      'timeOptions': match.timeOptions
+          .map(
+            (option) => {
+              'id': option.id,
+              'startTime': option.startTime.toIso8601String(),
+              'voterIds': option.voterIds,
+            },
+          )
+          .toList(),
       'participants': match.participants
           .map(
             (participant) => {
@@ -3729,6 +3811,7 @@ class PadelAppController extends ChangeNotifier {
           MatchVisibility.privateGame,
       inviteCode: json['inviteCode']?.toString(),
       inviteLink: json['inviteLink']?.toString(),
+      timeOptions: _timeOptionsFromEntry(json),
       participants: _participantSummariesFromEntry(
         json,
         {if (_currentUser != null) _currentUser!.id: _currentUser!.name},
@@ -4012,6 +4095,7 @@ class PadelAppController extends ChangeNotifier {
           : MatchVisibility.publicGame,
       inviteCode: entry['inviteCode']?.toString(),
       inviteLink: entry['inviteLink']?.toString(),
+      timeOptions: _timeOptionsFromEntry(entry),
       participants: _participantSummariesFromEntry(
         entry,
         userNameById,
@@ -4019,6 +4103,69 @@ class PadelAppController extends ChangeNotifier {
         userPhotoById: userPhotoById,
       ),
     );
+  }
+
+  List<String> _timeOptionsToIso(DateTime startTime, List<DateTime> options) {
+    final times = <DateTime>[startTime, ...options];
+    final isoTimes = <String>[];
+    for (final time in times) {
+      final iso = time.toIso8601String();
+      if (!isoTimes.contains(iso)) {
+        isoTimes.add(iso);
+      }
+    }
+    return isoTimes;
+  }
+
+  List<MatchTimeOption> _buildLocalTimeOptions(
+    DateTime startTime,
+    List<DateTime> options,
+  ) {
+    final isoTimes = _timeOptionsToIso(startTime, options);
+    if (isoTimes.length <= 1) {
+      return const [];
+    }
+    return [
+      for (var i = 0; i < isoTimes.length; i++)
+        MatchTimeOption(
+          id: 'time_${i + 1}_${DateTime.now().microsecondsSinceEpoch}',
+          startTime: DateTime.parse(isoTimes[i]),
+          voterIds: i == 0 && _currentUser != null
+              ? [_currentUser!.id]
+              : const [],
+        ),
+    ];
+  }
+
+  List<MatchTimeOption> _timeOptionsFromEntry(Map<String, dynamic> entry) {
+    final rawOptions = entry['timeOptions'];
+    if (rawOptions is! List) {
+      return const [];
+    }
+
+    final options = <MatchTimeOption>[];
+    for (var i = 0; i < rawOptions.length; i++) {
+      final raw = rawOptions[i];
+      if (raw is! Map) {
+        continue;
+      }
+      final rawStart = (raw['startsAt'] ?? raw['startTime'])?.toString();
+      final startTime = DateTime.tryParse(rawStart ?? '')?.toLocal();
+      if (startTime == null) {
+        continue;
+      }
+      final rawVoters = raw['voterIds'];
+      options.add(
+        MatchTimeOption(
+          id: (raw['id'] ?? 'time_${i + 1}').toString(),
+          startTime: startTime,
+          voterIds: rawVoters is List
+              ? rawVoters.map((entry) => entry.toString()).toList()
+              : const [],
+        ),
+      );
+    }
+    return options;
   }
 
   List<MatchParticipantSummary> _participantSummariesFromEntry(

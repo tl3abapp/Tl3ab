@@ -259,6 +259,7 @@ class PadelApiClient {
     int skillMax = 10,
     String? hostSide,
     String? courtPhotoData,
+    List<String> timeOptions = const [],
   }) async {
     return _postJson('/matches', {
       'hostId': hostId,
@@ -275,6 +276,7 @@ class PadelApiClient {
       'skillMax': skillMax,
       if (hostSide != null && hostSide.isNotEmpty) 'hostSide': hostSide,
       if (inviteUserIds.isNotEmpty) 'inviteUserIds': inviteUserIds,
+      if (timeOptions.length > 1) 'timeOptions': timeOptions,
     });
   }
 
@@ -310,6 +312,7 @@ class PadelApiClient {
     String? startsAtIso,
     String? courtName,
     String? courtPhotoData,
+    List<String> timeOptions = const [],
   }) async {
     final body = <String, dynamic>{'hostId': hostId};
     if (startsAtIso != null && startsAtIso.isNotEmpty) {
@@ -321,7 +324,21 @@ class PadelApiClient {
     if (courtPhotoData != null) {
       body['courtPhotoData'] = courtPhotoData;
     }
+    if (startsAtIso != null && startsAtIso.isNotEmpty) {
+      body['timeOptions'] = timeOptions;
+    }
     return _postJson('/matches/$matchId/details', body);
+  }
+
+  Future<Map<String, dynamic>> voteMatchTimeOption({
+    required String matchId,
+    required String userId,
+    required String optionId,
+  }) async {
+    return _postJson('/matches/$matchId/time-option', {
+      'userId': userId,
+      'optionId': optionId,
+    });
   }
 
   Future<void> replaceMatchPlayer({

@@ -7,6 +7,7 @@ class GameCard extends StatelessWidget {
     required this.title,
     required this.area,
     required this.time,
+    this.scheduleLabel,
     required this.players,
     this.onPrimaryAction,
     this.onSecondaryAction,
@@ -30,6 +31,7 @@ class GameCard extends StatelessWidget {
   final String title;
   final String area;
   final String time;
+  final String? scheduleLabel;
   final String players;
   final String badge;
   final String? primaryLabel;
@@ -130,6 +132,12 @@ class GameCard extends StatelessWidget {
               children: [
                 _infoChip(Icons.location_on_outlined, area, accent),
                 _infoChip(Icons.access_time, time, accent),
+                if (scheduleLabel != null && scheduleLabel!.trim().isNotEmpty)
+                  _infoChip(
+                    Icons.event_repeat_outlined,
+                    scheduleLabel!,
+                    accent,
+                  ),
                 _infoChip(Icons.groups_2_outlined, players, accent),
                 if (hostName != null && hostName!.trim().isNotEmpty)
                   _infoChip(Icons.person_outline, 'Host: $hostName', accent),

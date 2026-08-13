@@ -233,6 +233,9 @@ class _HomePageState extends State<HomePage> {
                     title: (match.title ?? 'Game').toString(),
                     area: (match.area ?? '-').toString(),
                     time: _formatDate(match.startTime as DateTime),
+                    scheduleLabel: match.isScheduledGame == true
+                        ? tr('Play scheduling', 'جدولة اللعب')
+                        : null,
                     players: playersLabel(
                       match.joinedPlayers as int,
                       match.maxPlayers as int,
@@ -241,12 +244,14 @@ class _HomePageState extends State<HomePage> {
                     joinedNames: match.sideSummary.toString(),
                     courtPhotoData: match.courtPhotoData?.toString(),
                     badge: appIsArabic(languageCode)
-                        ? ((controller
-                                      .targetScopeLabelForMatch(matchId)
-                                      .toString() ==
-                                  'Public')
-                              ? 'مباراتي العامة'
-                              : 'مباراتي')
+                        ? (match.isScheduledGame == true
+                              ? 'لعبة مجدولة'
+                              : ((controller
+                                            .targetScopeLabelForMatch(matchId)
+                                            .toString() ==
+                                        'Public')
+                                    ? 'مباراتي العامة'
+                                    : 'مباراتي'))
                         : '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'MY PUBLIC' : 'MY'} GAME',
                     statusLabel: pendingCount > 0
                         ? tr('$pendingCount pending', '$pendingCount بانتظارك')
@@ -326,6 +331,9 @@ class _HomePageState extends State<HomePage> {
                     title: (match.title ?? 'Game').toString(),
                     area: (match.area ?? '-').toString(),
                     time: _formatDate(match.startTime as DateTime),
+                    scheduleLabel: match.isScheduledGame == true
+                        ? tr('Play scheduling', 'جدولة اللعب')
+                        : null,
                     players: playersLabel(
                       match.joinedPlayers as int,
                       match.maxPlayers as int,
@@ -334,8 +342,12 @@ class _HomePageState extends State<HomePage> {
                     joinedNames: match.sideSummary.toString(),
                     courtPhotoData: match.courtPhotoData?.toString(),
                     badge: appIsArabic(languageCode)
-                        ? (isPublicGame ? 'مباراة عامة' : 'مباراة')
-                        : (isPublicGame ? '$targetBadge GAME' : 'GAME'),
+                        ? (match.isScheduledGame == true
+                              ? 'لعبة مجدولة'
+                              : (isPublicGame ? 'مباراة عامة' : 'مباراة'))
+                        : (match.isScheduledGame == true
+                              ? 'SCHEDULED GAME'
+                              : (isPublicGame ? '$targetBadge GAME' : 'GAME')),
                     statusLabel: myStatus,
                     primaryLabel: actionText(actionLabel),
                     secondaryLabel: isHost && pendingCount > 0
@@ -525,6 +537,9 @@ class _HomePageState extends State<HomePage> {
     final inviteLink = match.inviteLink?.toString() ?? '';
     final matchId = match.id.toString();
     final canChat = (controller.canChatInMatch(matchId) as bool?) ?? false;
+    final languageCode = controller.generalSettings.languageCode.toString();
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
     final courtImage = CourtPhoto.imageProvider(
       match.courtPhotoData?.toString(),
     );
@@ -561,7 +576,7 @@ class _HomePageState extends State<HomePage> {
                   photoData: match.hostPhotoData?.toString(),
                   fallbackIcon: Icons.person_outline,
                 ),
-                title: const Text('Hosted by'),
+                title: Text(tr('Hosted by', 'الهوست')),
                 subtitle: Text(match.hostName.toString()),
               ),
               ListTile(
@@ -574,6 +589,18 @@ class _HomePageState extends State<HomePage> {
                   '${match.area} • ${_formatDate(match.startTime as DateTime)}',
                 ),
               ),
+              if (match.isScheduledGame == true) ...[
+                const SizedBox(height: 8),
+                Text(
+                  tr('Play scheduling', 'جدولة اللعب'),
+                  style: const TextStyle(
+                    color: AppColors.green,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ..._timeOptionTiles(context, match, tr),
+              ],
               if (canChat) ...[
                 const SizedBox(height: 8),
                 FilledButton.icon(
@@ -595,12 +622,15 @@ class _HomePageState extends State<HomePage> {
                     );
                   },
                   icon: const Icon(Icons.forum_outlined),
-                  label: const Text('Open game chat'),
+                  label: Text(tr('Open game chat', 'افتح محادثة المباراة')),
                 ),
               ],
               const SizedBox(height: 8),
               Text(
-                'Joined players (${joined.length})',
+                tr(
+                  'Joined players (${joined.length})',
+                  'اللاعبون المنضمون (${joined.length})',
+                ),
                 style: const TextStyle(
                   color: AppColors.muted,
                   fontWeight: FontWeight.w800,
@@ -608,9 +638,12 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 8),
               if (joined.isEmpty)
-                const Text(
-                  'No players accepted yet.',
-                  style: TextStyle(color: AppColors.muted),
+                Text(
+                  tr(
+                    'No players accepted yet.',
+                    'لم يتم قبول أي لاعب حتى الآن.',
+                  ),
+                  style: const TextStyle(color: AppColors.muted),
                 )
               else
                 ...joined.map(
@@ -630,10 +663,11 @@ class _HomePageState extends State<HomePage> {
               if (inviteLink.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 FilledButton.icon(
-                  onPressed: () =>
-                      Share.share('Join my padel game:\n$inviteLink'),
+                  onPressed: () => Share.share(
+                    '${tr('Join my padel game:', 'انضم لمباراة البادل:')}\n$inviteLink',
+                  ),
                   icon: const Icon(Icons.ios_share_outlined),
-                  label: const Text('Share invite'),
+                  label: Text(tr('Share invite', 'مشاركة الدعوة')),
                 ),
               ],
             ],
@@ -651,6 +685,69 @@ class _HomePageState extends State<HomePage> {
       return 'Right';
     }
     return 'No side';
+  }
+
+  List<Widget> _timeOptionTiles(
+    BuildContext context,
+    dynamic match,
+    String Function(String english, String arabic) tr,
+  ) {
+    final currentUserId = controller.currentUser?.id?.toString();
+    final options = (match.timeOptions as List).toList();
+    final totalVotes = options.fold<int>(
+      0,
+      (sum, option) => sum + (option.voteCount as int),
+    );
+
+    return options
+        .map<Widget>((option) {
+          final voteCount = option.voteCount as int;
+          final percent = totalVotes == 0
+              ? 0
+              : ((voteCount / totalVotes) * 100).round();
+          final selected =
+              currentUserId != null &&
+              (option.voterIds as List).contains(currentUserId);
+
+          return ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              backgroundColor: selected
+                  ? AppColors.green.withValues(alpha: .14)
+                  : AppColors.stroke.withValues(alpha: .4),
+              child: Icon(
+                selected ? Icons.check_circle : Icons.schedule_outlined,
+                color: selected ? AppColors.green : AppColors.muted,
+              ),
+            ),
+            title: Text(_formatDate(option.startTime as DateTime)),
+            subtitle: Text(
+              tr(
+                '$voteCount votes • $percent%',
+                '$voteCount أصوات • $percent%',
+              ),
+            ),
+            trailing: TextButton(
+              onPressed: selected
+                  ? null
+                  : () async {
+                      final result = await controller.voteForMatchTimeOption(
+                        match.id.toString(),
+                        option.id.toString(),
+                      );
+                      if (!context.mounted) {
+                        return;
+                      }
+                      _showSnack(context, result.toString());
+                      Navigator.of(context).pop();
+                    },
+              child: Text(
+                selected ? tr('Selected', 'مختار') : tr('Choose', 'اختيار'),
+              ),
+            ),
+          );
+        })
+        .toList(growable: false);
   }
 
   Widget _actionIconButton({

@@ -101,17 +101,24 @@ class MyGamesPage extends StatelessWidget {
                             title: (match.title ?? 'Game').toString(),
                             area: (match.area ?? '-').toString(),
                             time: _formatDate(match.startTime as DateTime),
+                            scheduleLabel: match.isScheduledGame == true
+                                ? tr('Play scheduling', 'جدولة اللعب')
+                                : null,
                             players: playersLabel(match),
                             hostName: match.hostName.toString(),
                             joinedNames: match.sideSummary.toString(),
                             courtPhotoData: match.courtPhotoData?.toString(),
                             badge: appIsArabic(languageCode)
-                                ? ((controller
-                                              .targetScopeLabelForMatch(matchId)
-                                              .toString() ==
-                                          'Public')
-                                      ? 'مباراتي العامة'
-                                      : 'مباراتي')
+                                ? (match.isScheduledGame == true
+                                      ? 'لعبة مجدولة'
+                                      : ((controller
+                                                    .targetScopeLabelForMatch(
+                                                      matchId,
+                                                    )
+                                                    .toString() ==
+                                                'Public')
+                                            ? 'مباراتي العامة'
+                                            : 'مباراتي'))
                                 : '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'MY PUBLIC' : 'MY'} GAME',
                             statusLabel: pendingCount > 0
                                 ? tr(
@@ -167,6 +174,9 @@ class MyGamesPage extends StatelessWidget {
                             title: (match.title ?? 'Game').toString(),
                             area: (match.area ?? '-').toString(),
                             time: _formatDate(match.startTime as DateTime),
+                            scheduleLabel: match.isScheduledGame == true
+                                ? tr('Play scheduling', 'جدولة اللعب')
+                                : null,
                             players: playersLabel(match),
                             hostName: match.hostName.toString(),
                             joinedNames: match.sideSummary.toString(),
@@ -254,6 +264,18 @@ class MyGamesPage extends StatelessWidget {
                   '${match.area} • ${_formatDate(match.startTime as DateTime)}',
                 ),
               ),
+              if (match.isScheduledGame == true) ...[
+                const SizedBox(height: 8),
+                Text(
+                  tr('Play scheduling', 'جدولة اللعب'),
+                  style: const TextStyle(
+                    color: AppColors.green,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ..._timeOptionTiles(context, match, tr),
+              ],
               if (canChat) ...[
                 const SizedBox(height: 8),
                 FilledButton.icon(
@@ -338,6 +360,69 @@ class MyGamesPage extends StatelessWidget {
       return 'Right';
     }
     return 'No side';
+  }
+
+  List<Widget> _timeOptionTiles(
+    BuildContext context,
+    dynamic match,
+    String Function(String english, String arabic) tr,
+  ) {
+    final currentUserId = controller.currentUser?.id?.toString();
+    final options = (match.timeOptions as List).toList();
+    final totalVotes = options.fold<int>(
+      0,
+      (sum, option) => sum + (option.voteCount as int),
+    );
+
+    return options
+        .map<Widget>((option) {
+          final voteCount = option.voteCount as int;
+          final percent = totalVotes == 0
+              ? 0
+              : ((voteCount / totalVotes) * 100).round();
+          final selected =
+              currentUserId != null &&
+              (option.voterIds as List).contains(currentUserId);
+
+          return ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              backgroundColor: selected
+                  ? AppColors.green.withValues(alpha: .14)
+                  : AppColors.stroke.withValues(alpha: .4),
+              child: Icon(
+                selected ? Icons.check_circle : Icons.schedule_outlined,
+                color: selected ? AppColors.green : AppColors.muted,
+              ),
+            ),
+            title: Text(_formatDate(option.startTime as DateTime)),
+            subtitle: Text(
+              tr(
+                '$voteCount votes • $percent%',
+                '$voteCount أصوات • $percent%',
+              ),
+            ),
+            trailing: TextButton(
+              onPressed: selected
+                  ? null
+                  : () async {
+                      final result = await controller.voteForMatchTimeOption(
+                        match.id.toString(),
+                        option.id.toString(),
+                      );
+                      if (!context.mounted) {
+                        return;
+                      }
+                      _showSnack(context, result.toString());
+                      Navigator.of(context).pop();
+                    },
+              child: Text(
+                selected ? tr('Selected', 'مختار') : tr('Choose', 'اختيار'),
+              ),
+            ),
+          );
+        })
+        .toList(growable: false);
   }
 
   void _openManageSheet(BuildContext context, String matchId) {
@@ -552,8 +637,17 @@ class MyGamesPage extends StatelessWidget {
   }
 
   Future<void> _openEditGameDialog(BuildContext context, dynamic match) async {
+    final languageCode = controller.generalSettings.languageCode.toString();
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
     var selectedDate = match.startTime as DateTime;
     var selectedTime = TimeOfDay.fromDateTime(selectedDate);
+    var scheduledGame = match.isScheduledGame == true;
+    final extraTimeOptions = <DateTime>[
+      for (final option in (match.timeOptions as List))
+        if (!(option.startTime as DateTime).isAtSameMomentAs(selectedDate))
+          option.startTime as DateTime,
+    ].take(2).toList();
     var existingPhoto = match.courtPhotoData?.toString();
     Uint8List? pickedPhotoBytes;
     final courtController = TextEditingController(
@@ -568,9 +662,48 @@ class MyGamesPage extends StatelessWidget {
             final previewPhoto = pickedPhotoBytes == null
                 ? CourtPhoto.imageProvider(existingPhoto)
                 : MemoryImage(pickedPhotoBytes!) as ImageProvider<Object>;
+            Future<void> addTimeOption() async {
+              if (extraTimeOptions.length >= 2) {
+                return;
+              }
+              final initial = extraTimeOptions.isEmpty
+                  ? selectedDate.add(const Duration(hours: 1))
+                  : extraTimeOptions.last.add(const Duration(hours: 1));
+              final pickedDate = await showDatePicker(
+                context: context,
+                initialDate: initial,
+                firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (pickedDate == null || !context.mounted) {
+                return;
+              }
+              final pickedTime = await showTimePicker(
+                context: context,
+                initialTime: TimeOfDay.fromDateTime(initial),
+              );
+              if (pickedTime == null) {
+                return;
+              }
+              final option = DateTime(
+                pickedDate.year,
+                pickedDate.month,
+                pickedDate.day,
+                pickedTime.hour,
+                pickedTime.minute,
+              );
+              final duplicate = [
+                selectedDate,
+                ...extraTimeOptions,
+              ].any((time) => time.isAtSameMomentAs(option));
+              if (duplicate) {
+                return;
+              }
+              setDialogState(() => extraTimeOptions.add(option));
+            }
 
             return AlertDialog(
-              title: const Text('Edit game'),
+              title: Text(tr('Edit game', 'تعديل المباراة')),
               content: SingleChildScrollView(
                 child: SizedBox(
                   width: 360,
@@ -579,9 +712,12 @@ class MyGamesPage extends StatelessWidget {
                     children: [
                       TextField(
                         controller: courtController,
-                        decoration: const InputDecoration(
-                          labelText: 'Court / booking name',
-                          prefixIcon: Icon(Icons.stadium_outlined),
+                        decoration: InputDecoration(
+                          labelText: tr(
+                            'Court / booking name',
+                            'اسم الملعب / الحجز',
+                          ),
+                          prefixIcon: const Icon(Icons.stadium_outlined),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -646,6 +782,70 @@ class MyGamesPage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 12),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        value: scheduledGame,
+                        onChanged: (value) {
+                          setDialogState(() {
+                            scheduledGame = value;
+                            if (!value) {
+                              extraTimeOptions.clear();
+                            }
+                          });
+                        },
+                        title: Text(
+                          tr('Scheduled game', 'لعبة مجدولة'),
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        subtitle: Text(
+                          tr(
+                            'Players choose from time options.',
+                            'اللاعبون يختارون من أوقات اللعب.',
+                          ),
+                        ),
+                      ),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          tr('Play scheduling', 'جدولة اللعب'),
+                          style: const TextStyle(
+                            color: AppColors.green,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      _editTimeOptionRow(
+                        label: tr('Main time', 'الوقت الأساسي'),
+                        value: _formatDate(selectedDate),
+                        onDelete: null,
+                      ),
+                      if (scheduledGame) ...[
+                        ...extraTimeOptions.asMap().entries.map(
+                          (entry) => _editTimeOptionRow(
+                            label: tr(
+                              'Option ${entry.key + 2}',
+                              'الاختيار ${entry.key + 2}',
+                            ),
+                            value: _formatDate(entry.value),
+                            onDelete: () => setDialogState(
+                              () => extraTimeOptions.removeAt(entry.key),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: extraTimeOptions.length >= 2
+                              ? null
+                              : addTimeOption,
+                          icon: const Icon(Icons.add_alarm_outlined),
+                          label: Text(
+                            tr('Add time choice', 'إضافة اختيار وقت'),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
                       if (previewPhoto != null) ...[
                         CourtPhoto.fromProvider(
                           imageProvider: previewPhoto,
@@ -675,12 +875,12 @@ class MyGamesPage extends StatelessWidget {
                               icon: const Icon(
                                 Icons.add_photo_alternate_outlined,
                               ),
-                              label: const Text('Booking photo'),
+                              label: Text(tr('Booking photo', 'صورة الحجز')),
                             ),
                           ),
                           const SizedBox(width: 8),
                           IconButton.outlined(
-                            tooltip: 'Remove photo',
+                            tooltip: tr('Remove photo', 'إزالة الصورة'),
                             onPressed: previewPhoto == null
                                 ? null
                                 : () {
@@ -700,16 +900,29 @@ class MyGamesPage extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(tr('Cancel', 'إلغاء')),
                 ),
                 FilledButton(
                   onPressed: () async {
+                    if (scheduledGame && extraTimeOptions.isEmpty) {
+                      _showSnack(
+                        context,
+                        tr(
+                          'Add at least one more time choice.',
+                          'أضف اختيار وقت ثاني على الأقل.',
+                        ),
+                      );
+                      return;
+                    }
                     final photoData = pickedPhotoBytes == null
                         ? existingPhoto
                         : base64Encode(pickedPhotoBytes!);
                     final result = await controller.updateHostedMatchDetails(
                       match.id.toString(),
                       startTime: selectedDate,
+                      timeOptions: scheduledGame
+                          ? extraTimeOptions.toList(growable: false)
+                          : const [],
                       courtName: courtController.text,
                       courtPhotoData: photoData,
                     );
@@ -719,7 +932,7 @@ class MyGamesPage extends StatelessWidget {
                     Navigator.of(context).pop();
                     _showSnack(context, result.toString());
                   },
-                  child: const Text('Save'),
+                  child: Text(tr('Save', 'حفظ')),
                 ),
               ],
             );
@@ -729,6 +942,23 @@ class MyGamesPage extends StatelessWidget {
     );
 
     courtController.dispose();
+  }
+
+  Widget _editTimeOptionRow({
+    required String label,
+    required String value,
+    required VoidCallback? onDelete,
+  }) {
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.schedule_outlined, color: AppColors.green),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+      subtitle: Text(value),
+      trailing: onDelete == null
+          ? null
+          : IconButton(onPressed: onDelete, icon: const Icon(Icons.close)),
+    );
   }
 
   Future<void> _openReplacePlayerDialog(
