@@ -64,6 +64,7 @@ flutter:
 
   assets:
     - assets/icon/tl3b_icon.png
+    - assets/brand/tl3ab_app_icon.png
     - assets/brand/tl3ab_mark.png
     - assets/brand/tl3ab_wordmark.png
 
@@ -101,6 +102,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/brand/tl3ab_mark.png
+  image_path: assets/brand/tl3ab_app_icon.png
   adaptive_icon_background: '#000000'
-  adaptive_icon_foreground: assets/brand/tl3ab_mark.png
+  adaptive_icon_foreground: assets/brand/tl3ab_app_icon.png

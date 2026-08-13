@@ -75,43 +75,30 @@ class _SplashPageState extends State<SplashPage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: brandLime.withValues(alpha: 0.26),
-                              blurRadius: 34,
-                              spreadRadius: -12,
+                      Transform.rotate(
+                        angle: _rotate.value,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(42),
+                            boxShadow: [
+                              BoxShadow(
+                                color: brandLime.withValues(alpha: 0.22),
+                                blurRadius: 42,
+                                spreadRadius: -16,
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(42),
+                            child: Image.asset(
+                              brandFullLogoAsset,
+                              width: 260,
+                              height: 260,
+                              fit: BoxFit.cover,
+                              filterQuality: FilterQuality.high,
+                              semanticLabel: 'تلعب؟',
                             ),
-                          ],
-                        ),
-                        child: Transform.rotate(
-                          angle: _rotate.value,
-                          child: const BrandMark(size: 176),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      const BrandArabicWordmark(fontSize: 78),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(width: 90, height: 3, color: brandLime),
-                          const SizedBox(width: 18),
-                          const BrandBall(size: 34),
-                          const SizedBox(width: 18),
-                          Container(width: 90, height: 3, color: brandLime),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      const Text(
-                        'TL3AB?',
-                        style: TextStyle(
-                          color: brandLime,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 8,
-                          fontFamilyFallback: brandLatinFontFallback,
+                          ),
                         ),
                       ),
                     ],
