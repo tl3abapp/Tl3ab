@@ -57,7 +57,7 @@ class _PadelConnectAppState extends State<PadelConnectApp> {
             locale: appLocale(languageCode),
             supportedLocales: const [Locale('en'), Locale('ar')],
             localizationsDelegates: GlobalMaterialLocalizations.delegates,
-            theme: AppTheme.light(),
+            theme: AppTheme.light(languageCode: languageCode),
             builder: (context, child) {
               return Directionality(
                 textDirection: appDirection(languageCode),
