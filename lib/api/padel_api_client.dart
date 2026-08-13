@@ -62,6 +62,13 @@ class PadelApiClient {
       return '${Uri.base.origin}/api';
     }
 
+    if (kReleaseMode) {
+      throw StateError(
+        'Missing production API URL. Build release with '
+        '--dart-define=PADEL_API_URL=https://your-api.onrender.com',
+      );
+    }
+
     return 'http://127.0.0.1:3000';
   }
 

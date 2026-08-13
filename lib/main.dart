@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:padel_connect/api/padel_api_client.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:padel_connect/pages/main_shell.dart';
 import 'package:padel_connect/pages/splash_page.dart';
@@ -4513,7 +4514,13 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     if (message.contains("Failed host lookup") ||
         message.contains("Connection refused") ||
         message.contains("SocketException")) {
-      return "Cannot reach API. Start backend on http://127.0.0.1:3000";
+      return kReleaseMode
+          ? "Cannot reach service. Please try again shortly."
+          : "Cannot reach API. Start backend on http://127.0.0.1:3000";
+    }
+
+    if (message.contains("Missing production API URL")) {
+      return "Production API URL is missing. Rebuild with PADEL_API_URL.";
     }
 
     if (message.contains("/users") && message.contains("404")) {
