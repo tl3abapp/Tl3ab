@@ -15,6 +15,7 @@ class AppTheme {
   static ThemeData light() {
     final base = ThemeData(
       useMaterial3: true,
+      fontFamily: 'Tajawal',
       scaffoldBackgroundColor: AppColors.bg,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.green,
@@ -32,10 +33,40 @@ class AppTheme {
         foregroundColor: AppColors.text,
         surfaceTintColor: Colors.transparent,
       ),
-      textTheme: base.textTheme.apply(
-        bodyColor: AppColors.text,
-        displayColor: AppColors.text,
-      ),
+      textTheme: base.textTheme
+          .apply(bodyColor: AppColors.text, displayColor: AppColors.text)
+          .copyWith(
+            displayLarge: base.textTheme.displayLarge?.copyWith(
+              fontFamily: 'Tajawal',
+              fontWeight: FontWeight.w800,
+            ),
+            displayMedium: base.textTheme.displayMedium?.copyWith(
+              fontFamily: 'Tajawal',
+              fontWeight: FontWeight.w800,
+            ),
+            headlineLarge: base.textTheme.headlineLarge?.copyWith(
+              fontFamily: 'Tajawal',
+              fontWeight: FontWeight.w800,
+            ),
+            headlineMedium: base.textTheme.headlineMedium?.copyWith(
+              fontFamily: 'Tajawal',
+              fontWeight: FontWeight.w800,
+            ),
+            titleLarge: base.textTheme.titleLarge?.copyWith(
+              fontFamily: 'Tajawal',
+              fontWeight: FontWeight.w800,
+            ),
+            titleMedium: base.textTheme.titleMedium?.copyWith(
+              fontFamily: 'Tajawal',
+              fontWeight: FontWeight.w700,
+            ),
+            bodyLarge: base.textTheme.bodyLarge?.copyWith(
+              fontFamily: 'Tajawal',
+            ),
+            bodyMedium: base.textTheme.bodyMedium?.copyWith(
+              fontFamily: 'Tajawal',
+            ),
+          ),
       cardTheme: CardThemeData(
         color: AppColors.card,
         elevation: 0,

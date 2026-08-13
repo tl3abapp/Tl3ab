@@ -5,6 +5,7 @@ const brandFullLogoAsset = 'assets/brand/tl3ab_app_icon.png';
 const brandWordmarkAsset = 'assets/brand/tl3ab_wordmark.png';
 const brandLime = Color(0xFFB7FF1A);
 const brandArabicFontFallback = <String>[
+  'Tajawal',
   'Arial Rounded MT Bold',
   'Geeza Pro',
   'Tahoma',
