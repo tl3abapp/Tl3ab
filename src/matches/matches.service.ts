@@ -8,6 +8,7 @@ import { In, Repository } from 'typeorm';
 import {
   MatchEntity,
   MatchSide,
+  MatchTimeOption,
   MatchParticipantEntity,
   ParticipantStatus,
   UserEntity,
@@ -136,6 +137,7 @@ export class MatchesService {
       courtName: dto.courtName.trim(),
       courtPhotoData: dto.courtPhotoData?.trim() || null,
       startsAt: new Date(dto.startsAt),
+      timeOptions: this.normalizeTimeOptions(dto.startsAt, dto.timeOptions),
       isPrivate: dto.isPrivate ?? false,
       maxPlayers: dto.maxPlayers ?? 4,
       joinedPlayers: 1,
@@ -407,6 +409,23 @@ export class MatchesService {
       match.startsAt = nextStart;
     }
 
+    if (dto.timeOptions !== undefined) {
+      match.timeOptions = this.normalizeTimeOptions(
+        (dto.startsAt ?? match.startsAt.toISOString()),
+        dto.timeOptions,
+        match.timeOptions,
+      );
+    } else if (timeChanged && match.timeOptions?.length) {
+      match.timeOptions = this.normalizeTimeOptions(
+        match.startsAt.toISOString(),
+        [
+          match.startsAt.toISOString(),
+          ...match.timeOptions.map((option) => option.startsAt),
+        ],
+        match.timeOptions,
+      );
+    }
+
     if (dto.courtName !== undefined) {
       const cleanCourtName = dto.courtName.trim();
       if (cleanCourtName) {
@@ -435,6 +454,60 @@ export class MatchesService {
           matchId,
         });
       }
+    }
+
+    return saved;
+  }
+
+  async voteTimeOption(
+    matchId: string,
+    userId: string,
+    optionId: string,
+  ): Promise<MatchEntity> {
+    const match = await this.matchesRepo.findOne({ where: { id: matchId } });
+    if (!match) {
+      throw new NotFoundException('Match not found');
+    }
+
+    const participant = await this.participantsRepo.findOne({
+      where: { matchId, userId },
+    });
+    const canVote =
+      match.hostId === userId ||
+      (participant &&
+        participant.status !== ParticipantStatus.Rejected &&
+        participant.status !== ParticipantStatus.Left);
+    if (!canVote) {
+      throw new BadRequestException('Only invited players can choose a time');
+    }
+
+    const options = this.normalizeTimeOptions(
+      match.startsAt.toISOString(),
+      match.timeOptions?.map((option) => option.startsAt),
+      match.timeOptions,
+    ) ?? [];
+    const selected = options.find((option) => option.id === optionId);
+    if (!selected) {
+      throw new BadRequestException('Time option not found');
+    }
+
+    for (const option of options) {
+      option.voterIds = option.voterIds.filter((id) => id !== userId);
+    }
+    selected.voterIds.push(userId);
+    match.timeOptions = options;
+    match.startsAt = new Date(selected.startsAt);
+
+    const saved = await this.matchesRepo.save(match);
+
+    if (userId !== match.hostId) {
+      await this.notificationsService.create({
+        userId: match.hostId,
+        type: 'match_time_vote',
+        title: 'Scheduled game time selected',
+        body: `${match.title} has a new time vote`,
+        matchId,
+      });
     }
 
     return saved;
@@ -684,6 +757,43 @@ export class MatchesService {
 
   private buildInviteCode(): string {
     return randomBytes(4).toString('hex').toUpperCase().slice(0, 6);
+  }
+
+  private normalizeTimeOptions(
+    primaryStartsAt: string,
+    rawOptions?: string[] | null,
+    existingOptions?: MatchTimeOption[] | null,
+  ): MatchTimeOption[] | null {
+    const existingByTime = new Map(
+      (existingOptions ?? []).map((option) => [
+        new Date(option.startsAt).toISOString(),
+        option,
+      ]),
+    );
+    const isoTimes: string[] = [];
+    for (const raw of [primaryStartsAt, ...(rawOptions ?? [])]) {
+      const date = new Date(raw);
+      if (Number.isNaN(date.getTime())) {
+        continue;
+      }
+      const iso = date.toISOString();
+      if (!isoTimes.includes(iso)) {
+        isoTimes.push(iso);
+      }
+    }
+
+    if (isoTimes.length <= 1) {
+      return null;
+    }
+
+    return isoTimes.slice(0, 5).map((startsAt, index) => {
+      const existing = existingByTime.get(startsAt);
+      return {
+        id: existing?.id ?? `time_${index + 1}_${randomBytes(3).toString('hex')}`,
+        startsAt,
+        voterIds: [...new Set(existing?.voterIds ?? [])],
+      };
+    });
   }
 
   private canUserSeeMatch(

@@ -1,4 +1,10 @@
-import { IsDateString, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class UpdateMatchDetailsDto {
   @IsUUID()
@@ -7,6 +13,11 @@ export class UpdateMatchDetailsDto {
   @IsDateString()
   @IsOptional()
   startsAt?: string;
+
+  @IsArray()
+  @IsDateString({}, { each: true })
+  @IsOptional()
+  timeOptions?: string[];
 
   @IsString()
   @IsOptional()

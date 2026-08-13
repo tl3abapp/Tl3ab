@@ -28,6 +28,12 @@ export enum MatchSide {
   Right = 'right',
 }
 
+export type MatchTimeOption = {
+  id: string;
+  startsAt: string;
+  voterIds: string[];
+};
+
 export enum ChatThreadType {
   Direct = 'direct',
   Match = 'match',
@@ -143,6 +149,9 @@ export class MatchEntity {
 
   @Column({ type: dateTimeColumnType })
   startsAt!: Date;
+
+  @Column({ type: 'simple-json', nullable: true })
+  timeOptions!: MatchTimeOption[] | null;
 
   @Column({ type: 'boolean', default: false })
   isPrivate!: boolean;

@@ -18,6 +18,7 @@ import { ModerateRequestDto } from './dto/moderate-request.dto';
 import { UpdateMatchPrivacyDto } from './dto/update-match-privacy.dto';
 import { ReplacePlayerDto } from './dto/replace-player.dto';
 import { UpdateMatchDetailsDto } from './dto/update-match-details.dto';
+import { VoteTimeOptionDto } from './dto/vote-time-option.dto';
 
 @Controller('matches')
 export class MatchesController {
@@ -99,6 +100,16 @@ export class MatchesController {
   ) {
     this.ensureSelf(dto.hostId, currentUserId);
     return this.matchesService.updateDetails(id, dto);
+  }
+
+  @Post(':id/time-option')
+  voteTimeOption(
+    @Param('id') id: string,
+    @Body() dto: VoteTimeOptionDto,
+    @CurrentUserId() currentUserId: string,
+  ) {
+    this.ensureSelf(dto.userId, currentUserId);
+    return this.matchesService.voteTimeOption(id, dto.userId, dto.optionId);
   }
 
   @Post(':id/replace-player')

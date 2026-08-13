@@ -33,6 +33,11 @@ export class CreateMatchDto {
   @IsDateString()
   startsAt!: string;
 
+  @IsArray()
+  @IsDateString({}, { each: true })
+  @IsOptional()
+  timeOptions?: string[];
+
   @IsBoolean()
   @IsOptional()
   isPrivate?: boolean;
