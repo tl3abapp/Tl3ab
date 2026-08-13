@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+const productionApiBaseUrl = 'https://tl3ab.onrender.com/api';
+
 class ApiException implements Exception {
   const ApiException({required this.message, this.statusCode, this.path});
 
@@ -63,10 +65,7 @@ class PadelApiClient {
     }
 
     if (kReleaseMode) {
-      throw StateError(
-        'Missing production API URL. Build release with '
-        '--dart-define=PADEL_API_URL=https://your-api.onrender.com',
-      );
+      return productionApiBaseUrl;
     }
 
     return 'http://127.0.0.1:3000';
