@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/pages/chat_thread_page.dart';
 import 'package:padel_connect/pages/create_game_page.dart';
 import 'package:padel_connect/theme/app_theme.dart';
@@ -49,6 +50,33 @@ class _HomePageState extends State<HomePage> {
         0;
     final languageCode = controller.generalSettings.languageCode.toString();
     final appTitle = brandTitleForLanguage(languageCode);
+    String tr(String english, String arabic) =>
+        appText(languageCode, english, arabic);
+    String playersLabel(int joined, int max) => appIsArabic(languageCode)
+        ? '$joined/$max لاعبين'
+        : '$joined/$max players';
+    String nearbyPlayersLabel(int count) => appIsArabic(languageCode)
+        ? '$count لاعبين قريبين'
+        : '$count players nearby';
+    String alertsLabel(int count) => count > 0
+        ? (appIsArabic(languageCode)
+              ? '$count تنبيهات جديدة'
+              : '$count new alerts')
+        : tr('No alerts', 'لا توجد تنبيهات');
+    String actionText(String value) {
+      switch (value.toLowerCase()) {
+        case 'manage':
+          return tr('Manage', 'إدارة');
+        case 'request':
+          return tr('Request', 'طلب');
+        case 'join':
+          return tr('Join', 'انضم');
+        case 'leave':
+          return tr('Leave', 'خروج');
+        default:
+          return value;
+      }
+    }
 
     return SafeArea(
       child: DecoratedBox(
@@ -110,7 +138,9 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hi $userName 👋',
+                      appIsArabic(languageCode)
+                          ? 'هلا $userName 👋'
+                          : 'Hi $userName 👋',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -118,9 +148,12 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Ready for your next match?',
-                      style: TextStyle(
+                    Text(
+                      tr(
+                        'Ready for your next match?',
+                        'جاهز لمباراتك القادمة؟',
+                      ),
+                      style: const TextStyle(
                         color: Color(0xFFD8F3E7),
                         fontWeight: FontWeight.w500,
                       ),
@@ -136,13 +169,11 @@ class _HomePageState extends State<HomePage> {
                         ),
                         _heroChip(
                           icon: Icons.groups_2_outlined,
-                          label: '$nearbyPlayers players nearby',
+                          label: nearbyPlayersLabel(nearbyPlayers),
                         ),
                         _heroChip(
                           icon: Icons.notifications_active_outlined,
-                          label: unread > 0
-                              ? '$unread new alerts'
-                              : 'No alerts',
+                          label: alertsLabel(unread),
                         ),
                       ],
                     ),
@@ -158,9 +189,12 @@ class _HomePageState extends State<HomePage> {
                     color: AppColors.green,
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    'My Games',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  Text(
+                    tr('My Games', 'مبارياتي'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const Spacer(),
                   if (myGames.isNotEmpty)
@@ -175,11 +209,14 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 12),
               if (myGames.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text(
-                    'Create a game to see it here.',
-                    style: TextStyle(color: AppColors.muted),
+                    tr(
+                      'Create a game to see it here.',
+                      'أنشئ مباراة عشان تظهر هنا.',
+                    ),
+                    style: const TextStyle(color: AppColors.muted),
                   ),
                 )
               else
@@ -196,21 +233,35 @@ class _HomePageState extends State<HomePage> {
                     title: (match.title ?? 'Game').toString(),
                     area: (match.area ?? '-').toString(),
                     time: _formatDate(match.startTime as DateTime),
-                    players:
-                        '${match.joinedPlayers}/${match.maxPlayers} players',
+                    players: playersLabel(
+                      match.joinedPlayers as int,
+                      match.maxPlayers as int,
+                    ),
                     hostName: match.hostName.toString(),
                     joinedNames: match.sideSummary.toString(),
                     courtPhotoData: match.courtPhotoData?.toString(),
-                    badge:
-                        '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'MY PUBLIC' : 'MY'} GAME',
+                    badge: appIsArabic(languageCode)
+                        ? ((controller
+                                      .targetScopeLabelForMatch(matchId)
+                                      .toString() ==
+                                  'Public')
+                              ? 'مباراتي العامة'
+                              : 'مباراتي')
+                        : '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'MY PUBLIC' : 'MY'} GAME',
                     statusLabel: pendingCount > 0
-                        ? '$pendingCount pending'
-                        : 'Host',
-                    primaryLabel: pendingCount > 0 ? 'Requests' : 'Manage',
-                    secondaryLabel: inviteLink.isEmpty ? null : 'Share',
+                        ? tr('$pendingCount pending', '$pendingCount بانتظارك')
+                        : tr('Host', 'الهوست'),
+                    primaryLabel: pendingCount > 0
+                        ? tr('Requests', 'الطلبات')
+                        : tr('Manage', 'إدارة'),
+                    secondaryLabel: inviteLink.isEmpty
+                        ? null
+                        : tr('Share', 'مشاركة'),
                     onSecondaryAction: inviteLink.isEmpty
                         ? null
-                        : () => Share.share('Join my padel game:\n$inviteLink'),
+                        : () => Share.share(
+                            '${tr('Join my padel game:', 'انضم لمباراة البادل:')}\n$inviteLink',
+                          ),
                     onMenuTap: () => _openRequestsDialog(context, matchId),
                     onTap: () => _openGameDetailsSheet(context, match),
                     onPrimaryAction: () =>
@@ -218,23 +269,33 @@ class _HomePageState extends State<HomePage> {
                   );
                 }),
               const SizedBox(height: 8),
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.map_outlined, size: 19, color: AppColors.green),
-                  SizedBox(width: 8),
+                  const Icon(
+                    Icons.map_outlined,
+                    size: 19,
+                    color: AppColors.green,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    'Games Near You',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                    tr('Games Near You', 'مباريات قريبة منك'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               if (games.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: Text(
-                    'No games yet in this area.',
-                    style: TextStyle(color: AppColors.muted),
+                    tr(
+                      'No games yet in this area.',
+                      'ما فيه مباريات حالياً بهالمنطقة.',
+                    ),
+                    style: const TextStyle(color: AppColors.muted),
                   ),
                 )
               else
@@ -265,16 +326,23 @@ class _HomePageState extends State<HomePage> {
                     title: (match.title ?? 'Game').toString(),
                     area: (match.area ?? '-').toString(),
                     time: _formatDate(match.startTime as DateTime),
-                    players:
-                        '${match.joinedPlayers}/${match.maxPlayers} players',
+                    players: playersLabel(
+                      match.joinedPlayers as int,
+                      match.maxPlayers as int,
+                    ),
                     hostName: match.hostName.toString(),
                     joinedNames: match.sideSummary.toString(),
                     courtPhotoData: match.courtPhotoData?.toString(),
-                    badge: isPublicGame ? '$targetBadge GAME' : 'GAME',
+                    badge: appIsArabic(languageCode)
+                        ? (isPublicGame ? 'مباراة عامة' : 'مباراة')
+                        : (isPublicGame ? '$targetBadge GAME' : 'GAME'),
                     statusLabel: myStatus,
-                    primaryLabel: actionLabel,
+                    primaryLabel: actionText(actionLabel),
                     secondaryLabel: isHost && pendingCount > 0
-                        ? 'Requests ($pendingCount)'
+                        ? tr(
+                            'Requests ($pendingCount)',
+                            'الطلبات ($pendingCount)',
+                          )
                         : null,
                     onSecondaryAction: isHost && pendingCount > 0
                         ? () => _openRequestsDialog(context, matchId)
@@ -306,17 +374,20 @@ class _HomePageState extends State<HomePage> {
                   );
                 }),
               const SizedBox(height: 8),
-              const Row(
+              Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.flash_on_outlined,
                     size: 20,
                     color: AppColors.green,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Text(
-                    'Quick Actions',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                    tr('Quick Actions', 'إجراءات سريعة'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ],
               ),
@@ -326,8 +397,8 @@ class _HomePageState extends State<HomePage> {
                   Expanded(
                     child: _quickActionTile(
                       icon: Icons.qr_code_rounded,
-                      title: 'Join with Link',
-                      subtitle: 'Paste invite URL',
+                      title: tr('Join with Link', 'انضم برابط'),
+                      subtitle: tr('Paste invite URL', 'الصق رابط الدعوة'),
                       solid: false,
                       onTap: () => _openJoinCodeDialog(context),
                     ),
@@ -336,8 +407,11 @@ class _HomePageState extends State<HomePage> {
                   Expanded(
                     child: _quickActionTile(
                       icon: Icons.add_circle_outline,
-                      title: 'Create Game',
-                      subtitle: 'Circle / Friends / Public',
+                      title: tr('Create Game', 'إنشاء مباراة'),
+                      subtitle: tr(
+                        'Circle / Friends / Public',
+                        'السيركل / الأصدقاء / عام',
+                      ),
                       solid: true,
                       onTap: () async {
                         final dynamic created = await Navigator.push(

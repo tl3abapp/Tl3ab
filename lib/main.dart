@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/api/padel_api_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:padel_connect/pages/main_shell.dart';
 import 'package:padel_connect/pages/splash_page.dart';
 import 'package:flutter/services.dart';
@@ -47,11 +49,21 @@ class _PadelConnectAppState extends State<PadelConnectApp> {
           final appTitle = brandTitleForLanguage(
             _controller.generalSettings.languageCode,
           );
+          final languageCode = _controller.generalSettings.languageCode;
 
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: appTitle,
+            locale: appLocale(languageCode),
+            supportedLocales: const [Locale('en'), Locale('ar')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
             theme: AppTheme.light(),
+            builder: (context, child) {
+              return Directionality(
+                textDirection: appDirection(languageCode),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             home: SplashPage(nextBuilder: (_) => const AppEntry()),
           );
         },

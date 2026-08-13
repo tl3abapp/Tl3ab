@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/pages/chat_page.dart';
 import 'package:padel_connect/pages/circle_page.dart';
 import 'package:padel_connect/pages/community_page.dart';
@@ -48,32 +49,39 @@ class _MainShellState extends State<MainShell> {
         animation: widget.controller,
         builder: (context, _) => pages[index],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) => setState(() => index = i),
-        indicatorColor: AppColors.green.withValues(alpha: .12),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
-            label: 'Community',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Chat',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: AnimatedBuilder(
+        animation: widget.controller,
+        builder: (context, _) {
+          final currentLanguage = widget.controller.generalSettings.languageCode
+              .toString();
+          return NavigationBar(
+            selectedIndex: index,
+            onDestinationSelected: (i) => setState(() => index = i),
+            indicatorColor: AppColors.green.withValues(alpha: .12),
+            destinations: [
+              NavigationDestination(
+                icon: const Icon(Icons.home_outlined),
+                selectedIcon: const Icon(Icons.home),
+                label: appText(currentLanguage, 'Home', 'الرئيسية'),
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.groups_outlined),
+                selectedIcon: const Icon(Icons.groups),
+                label: appText(currentLanguage, 'Community', 'المجتمع'),
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.chat_bubble_outline),
+                selectedIcon: const Icon(Icons.chat_bubble),
+                label: appText(currentLanguage, 'Chat', 'المحادثة'),
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.person_outline),
+                selectedIcon: const Icon(Icons.person),
+                label: appText(currentLanguage, 'Profile', 'الملف'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

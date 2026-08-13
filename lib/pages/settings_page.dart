@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/theme/app_theme.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -18,6 +19,9 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context, _) {
         final privacy = widget.controller.privacySettings;
         final general = widget.controller.generalSettings;
+        final languageCode = general.languageCode.toString();
+        String tr(String english, String arabic) =>
+            appText(languageCode, english, arabic);
         final isDeactivated =
             (widget.controller.isCurrentAccountDeactivated as bool?) ?? false;
         final deletionDate = widget.controller.currentAccountDeletionDate;
@@ -38,7 +42,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   Row(
                     children: [
                       IconButton(
-                        tooltip: 'Back',
+                        tooltip: tr('Back', 'رجوع'),
                         onPressed: () => Navigator.of(context).maybePop(),
                         style: IconButton.styleFrom(
                           backgroundColor: Colors.white,
@@ -48,9 +52,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         icon: const Icon(Icons.arrow_back),
                       ),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Settings',
+                          tr('Settings', 'الإعدادات'),
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 26,
@@ -61,23 +65,29 @@ class _SettingsPageState extends State<SettingsPage> {
                       const SizedBox(width: 8),
                       _pill(
                         icon: Icons.watch_outlined,
-                        text: 'Watch Ready',
+                        text: tr('Watch Ready', 'جاهز للساعة'),
                         color: const Color(0xFFEAF7EF),
                         textColor: AppColors.green,
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Privacy, notifications, account and app controls',
-                    style: TextStyle(color: AppColors.muted),
+                  Text(
+                    tr(
+                      'Privacy, notifications, account and app controls',
+                      'الخصوصية، التنبيهات، الحساب، وإعدادات التطبيق',
+                    ),
+                    style: const TextStyle(color: AppColors.muted),
                   ),
                   const SizedBox(height: 12),
                   _headerCard(
-                    title: 'Quick Status',
+                    title: tr('Quick Status', 'الحالة السريعة'),
                     subtitle: isDeactivated
-                        ? 'Account paused${deletionDate == null ? '' : ' until ${deletionDate.day}/${deletionDate.month}/${deletionDate.year}'}'
-                        : 'Account active and synced',
+                        ? tr(
+                            'Account paused${deletionDate == null ? '' : ' until ${deletionDate.day}/${deletionDate.month}/${deletionDate.year}'}',
+                            'الحساب موقوف${deletionDate == null ? '' : ' إلى ${deletionDate.day}/${deletionDate.month}/${deletionDate.year}'}',
+                          )
+                        : tr('Account active and synced', 'الحساب نشط ومتزامن'),
                     trailing: Icon(
                       isDeactivated
                           ? Icons.pause_circle_outline
@@ -89,7 +99,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const _SectionTitle('Privacy'),
+                  _SectionTitle(tr('Privacy', 'الخصوصية')),
                   _sectionCard(
                     children: [
                       SwitchListTile.adaptive(
@@ -100,7 +110,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             privacy.copyWith(privateProfile: value),
                           );
                         },
-                        title: const Text('Private profile'),
+                        title: Text(tr('Private profile', 'ملف خاص')),
                       ),
                       const Divider(height: 1),
                       SwitchListTile.adaptive(
@@ -111,7 +121,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             privacy.copyWith(showEmailOnProfile: value),
                           );
                         },
-                        title: const Text('Show email'),
+                        title: Text(tr('Show email', 'إظهار البريد')),
                       ),
                       const Divider(height: 1),
                       SwitchListTile.adaptive(
@@ -122,7 +132,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             privacy.copyWith(showPhoneOnProfile: value),
                           );
                         },
-                        title: const Text('Show phone'),
+                        title: Text(tr('Show phone', 'إظهار الهاتف')),
                       ),
                       const Divider(height: 1),
                       SwitchListTile.adaptive(
@@ -133,7 +143,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             privacy.copyWith(showAreaOnProfile: value),
                           );
                         },
-                        title: const Text('Show area'),
+                        title: Text(tr('Show area', 'إظهار المنطقة')),
                       ),
                       const Divider(height: 1),
                       SwitchListTile.adaptive(
@@ -144,7 +154,9 @@ class _SettingsPageState extends State<SettingsPage> {
                             privacy.copyWith(autoApproveCircleJoin: value),
                           );
                         },
-                        title: const Text('Circle instant join'),
+                        title: Text(
+                          tr('Circle instant join', 'انضمام السيركل تلقائي'),
+                        ),
                       ),
                       const Divider(height: 1),
                       SwitchListTile.adaptive(
@@ -155,13 +167,20 @@ class _SettingsPageState extends State<SettingsPage> {
                             privacy.copyWith(allowDmFromEveryone: value),
                           );
                         },
-                        title: const Text('DM from everyone'),
+                        title: Text(tr('DM from everyone', 'رسائل من الجميع')),
                       ),
                       const Divider(height: 1),
-                      const ListTile(
-                        leading: Icon(Icons.public_outlined),
-                        title: Text('Default game target'),
-                        subtitle: Text('Create Game default option'),
+                      ListTile(
+                        leading: const Icon(Icons.public_outlined),
+                        title: Text(
+                          tr('Default game target', 'هدف المباراة الافتراضي'),
+                        ),
+                        subtitle: Text(
+                          tr(
+                            'Create Game default option',
+                            'الخيار الافتراضي لإنشاء مباراة',
+                          ),
+                        ),
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -170,7 +189,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           runSpacing: 8,
                           children: [
                             _permissionChip(
-                              label: 'Circle',
+                              label: tr('Circle', 'السيركل'),
                               selected:
                                   widget.controller.defaultTargetScopeKey
                                       .toString() ==
@@ -184,7 +203,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               },
                             ),
                             _permissionChip(
-                              label: 'Friends',
+                              label: tr('Friends', 'الأصدقاء'),
                               selected:
                                   widget.controller.defaultTargetScopeKey
                                       .toString() ==
@@ -198,7 +217,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               },
                             ),
                             _permissionChip(
-                              label: 'Public',
+                              label: tr('Public', 'عام'),
                               selected:
                                   widget.controller.defaultTargetScopeKey
                                       .toString() ==
@@ -217,7 +236,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const _SectionTitle('General'),
+                  _SectionTitle(tr('General', 'عام')),
                   _sectionCard(
                     children: [
                       SwitchListTile.adaptive(
@@ -228,7 +247,9 @@ class _SettingsPageState extends State<SettingsPage> {
                             general.copyWith(pushInvites: value),
                           );
                         },
-                        title: const Text('Invite notifications'),
+                        title: Text(
+                          tr('Invite notifications', 'تنبيهات الدعوات'),
+                        ),
                       ),
                       const Divider(height: 1),
                       SwitchListTile.adaptive(
@@ -239,7 +260,9 @@ class _SettingsPageState extends State<SettingsPage> {
                             general.copyWith(pushChat: value),
                           );
                         },
-                        title: const Text('Chat notifications'),
+                        title: Text(
+                          tr('Chat notifications', 'تنبيهات المحادثة'),
+                        ),
                       ),
                       const Divider(height: 1),
                       SwitchListTile.adaptive(
@@ -250,7 +273,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             general.copyWith(pushMatchUpdates: value),
                           );
                         },
-                        title: const Text('Match updates'),
+                        title: Text(tr('Match updates', 'تحديثات المباراة')),
                       ),
                       const Divider(height: 1),
                       SwitchListTile.adaptive(
@@ -261,7 +284,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             general.copyWith(soundEnabled: value),
                           );
                         },
-                        title: const Text('Sound'),
+                        title: Text(tr('Sound', 'الصوت')),
                       ),
                       const Divider(height: 1),
                       SwitchListTile.adaptive(
@@ -272,7 +295,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             general.copyWith(vibrationEnabled: value),
                           );
                         },
-                        title: const Text('Vibration'),
+                        title: Text(tr('Vibration', 'الاهتزاز')),
                       ),
                       const Divider(height: 1),
                       SwitchListTile.adaptive(
@@ -283,16 +306,16 @@ class _SettingsPageState extends State<SettingsPage> {
                             general.copyWith(compactMode: value),
                           );
                         },
-                        title: const Text('Compact mode'),
+                        title: Text(tr('Compact mode', 'الوضع المختصر')),
                       ),
                       const Divider(height: 1),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                         child: DropdownButtonFormField<String>(
                           initialValue: general.languageCode,
-                          decoration: const InputDecoration(
-                            labelText: 'Language',
-                            prefixIcon: Icon(Icons.language_outlined),
+                          decoration: InputDecoration(
+                            labelText: tr('Language', 'اللغة'),
+                            prefixIcon: const Icon(Icons.language_outlined),
                           ),
                           items: const [
                             DropdownMenuItem(
@@ -317,7 +340,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const _SectionTitle('Account'),
+                  _SectionTitle(tr('Account', 'الحساب')),
                   _sectionCard(
                     children: [
                       ListTile(
@@ -328,88 +351,136 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         title: Text(
                           isDeactivated
-                              ? 'Account is deactivated'
-                              : 'Account active',
+                              ? tr('Account is deactivated', 'الحساب موقوف')
+                              : tr('Account active', 'الحساب نشط'),
                         ),
                         subtitle: isDeactivated && deletionDate != null
                             ? Text(
-                                'Scheduled delete: ${deletionDate.day}/${deletionDate.month}/${deletionDate.year}',
+                                tr(
+                                  'Scheduled delete: ${deletionDate.day}/${deletionDate.month}/${deletionDate.year}',
+                                  'الحذف المجدول: ${deletionDate.day}/${deletionDate.month}/${deletionDate.year}',
+                                ),
                               )
-                            : const Text('Your account is available.'),
+                            : Text(
+                                tr('Your account is available.', 'حسابك متاح.'),
+                              ),
                       ),
                       const Divider(height: 1),
                       if (!isDeactivated)
                         ListTile(
                           leading: const Icon(Icons.pause_circle_outline),
-                          title: const Text('Deactivate for 40 days'),
-                          subtitle: const Text(
-                            'You can reactivate before auto-delete',
+                          title: Text(
+                            tr('Deactivate for 40 days', 'إيقاف لمدة ٤٠ يوم'),
+                          ),
+                          subtitle: Text(
+                            tr(
+                              'You can reactivate before auto-delete',
+                              'تقدر تفعله قبل الحذف التلقائي',
+                            ),
                           ),
                           onTap: _deactivateAccount,
                         )
                       else
                         ListTile(
                           leading: const Icon(Icons.play_circle_outline),
-                          title: const Text('Reactivate account'),
-                          subtitle: const Text('Cancel scheduled deletion'),
+                          title: Text(
+                            tr('Reactivate account', 'إعادة تفعيل الحساب'),
+                          ),
+                          subtitle: Text(
+                            tr(
+                              'Cancel scheduled deletion',
+                              'إلغاء الحذف المجدول',
+                            ),
+                          ),
                           onTap: _reactivateAccount,
                         ),
                       const Divider(height: 1),
                       ListTile(
                         leading: const Icon(Icons.delete_forever_outlined),
-                        title: const Text('Delete account permanently'),
-                        subtitle: const Text('Immediate permanent delete'),
+                        title: Text(
+                          tr(
+                            'Delete account permanently',
+                            'حذف الحساب نهائياً',
+                          ),
+                        ),
+                        subtitle: Text(
+                          tr('Immediate permanent delete', 'حذف نهائي مباشر'),
+                        ),
                         onTap: _deleteAccount,
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const _SectionTitle('App'),
+                  _SectionTitle(tr('App', 'التطبيق')),
                   _sectionCard(
                     children: [
                       ListTile(
                         leading: const Icon(Icons.sync),
-                        title: const Text('Sync now'),
-                        subtitle: const Text('Refresh users, games, posts'),
+                        title: Text(tr('Sync now', 'تحديث الآن')),
+                        subtitle: Text(
+                          tr(
+                            'Refresh users, games, posts',
+                            'تحديث اللاعبين والمباريات والمنشورات',
+                          ),
+                        ),
                         onTap: () async {
                           await widget.controller.syncFromApi();
                           if (!context.mounted) {
                             return;
                           }
-                          _showSnack('Synced.');
+                          _showSnack(tr('Synced.', 'تم التحديث.'));
                         },
                       ),
                       const Divider(height: 1),
                       ListTile(
                         leading: const Icon(Icons.restore_outlined),
-                        title: const Text('Reset settings'),
-                        subtitle: const Text('Privacy and general to default'),
+                        title: Text(
+                          tr('Reset settings', 'إعادة ضبط الإعدادات'),
+                        ),
+                        subtitle: Text(
+                          tr(
+                            'Privacy and general to default',
+                            'إرجاع الخصوصية والعام للوضع الافتراضي',
+                          ),
+                        ),
                         onTap: () {
                           widget.controller.resetAppSettings();
-                          _showSnack('Settings reset.');
+                          _showSnack(
+                            tr('Settings reset.', 'تمت إعادة ضبط الإعدادات.'),
+                          );
                         },
                       ),
                       const Divider(height: 1),
-                      const ListTile(
-                        leading: Icon(Icons.watch_outlined),
-                        title: Text('Smartwatch support'),
+                      ListTile(
+                        leading: const Icon(Icons.watch_outlined),
+                        title: Text(
+                          tr('Smartwatch support', 'دعم الساعة الذكية'),
+                        ),
                         subtitle: Text(
-                          'Phone notifications mirror to Apple Watch and Wear OS.',
+                          tr(
+                            'Phone notifications mirror to Apple Watch and Wear OS.',
+                            'تنبيهات الهاتف تظهر على Apple Watch و Wear OS.',
+                          ),
                         ),
                       ),
                       const Divider(height: 1),
-                      const ListTile(
-                        leading: Icon(Icons.language),
-                        title: Text('Web ready'),
+                      ListTile(
+                        leading: const Icon(Icons.language),
+                        title: Text(tr('Web ready', 'جاهز للويب')),
                         subtitle: Text(
                           'Run with --dart-define=PADEL_API_URL=<your_api>',
                         ),
                       ),
                       const Divider(height: 1),
-                      const ListTile(
-                        leading: Icon(Icons.info_outline),
-                        title: Text('تلعب؟'),
-                        subtitle: Text('Private padel social app'),
+                      ListTile(
+                        leading: const Icon(Icons.info_outline),
+                        title: const Text('تلعب؟'),
+                        subtitle: Text(
+                          tr(
+                            'Private padel social app',
+                            'تطبيق اجتماعي خاص للبادل',
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -423,10 +494,15 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _deactivateAccount() async {
+    final languageCode = widget.controller.generalSettings.languageCode
+        .toString();
     final approved = await _confirm(
-      title: 'Deactivate account?',
-      body:
-          'Your account will be paused and deleted after 40 days unless reactivated.',
+      title: appText(languageCode, 'Deactivate account?', 'إيقاف الحساب؟'),
+      body: appText(
+        languageCode,
+        'Your account will be paused and deleted after 40 days unless reactivated.',
+        'سيتم إيقاف حسابك وحذفه بعد ٤٠ يوم إذا لم تتم إعادة تفعيله.',
+      ),
       danger: true,
     );
     if (!approved) {
@@ -449,9 +525,19 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _deleteAccount() async {
+    final languageCode = widget.controller.generalSettings.languageCode
+        .toString();
     final approved = await _confirm(
-      title: 'Delete account permanently?',
-      body: 'This cannot be undone.',
+      title: appText(
+        languageCode,
+        'Delete account permanently?',
+        'حذف الحساب نهائياً؟',
+      ),
+      body: appText(
+        languageCode,
+        'This cannot be undone.',
+        'لا يمكن التراجع عن هذا الإجراء.',
+      ),
       danger: true,
     );
     if (!approved) {
@@ -470,6 +556,8 @@ class _SettingsPageState extends State<SettingsPage> {
     required String body,
     bool danger = false,
   }) async {
+    final languageCode = widget.controller.generalSettings.languageCode
+        .toString();
     final result = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -479,14 +567,14 @@ class _SettingsPageState extends State<SettingsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(appText(languageCode, 'Cancel', 'إلغاء')),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: danger ? const Color(0xFFB42318) : null,
               ),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Confirm'),
+              child: Text(appText(languageCode, 'Confirm', 'تأكيد')),
             ),
           ],
         );
