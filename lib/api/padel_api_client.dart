@@ -64,11 +64,10 @@ class PadelApiClient {
       return '${Uri.base.origin}/api';
     }
 
-    if (kReleaseMode) {
-      return productionApiBaseUrl;
-    }
-
-    return 'http://127.0.0.1:3000';
+    // Mobile debug builds launched from Xcode run on the device/simulator, so
+    // 127.0.0.1 points at that device instead of the Mac backend. Use the
+    // public API by default, and pass PADEL_API_URL only when local dev needs it.
+    return productionApiBaseUrl;
   }
 
   Future<List<Map<String, dynamic>>> fetchUsers() async {
