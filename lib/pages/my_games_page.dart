@@ -98,6 +98,7 @@ class MyGamesPage extends StatelessWidget {
 
                           return GameCard(
                             highlighted: true,
+                            isScheduled: match.isScheduledGame == true,
                             title: (match.title ?? 'Game').toString(),
                             area: (match.area ?? '-').toString(),
                             time: _formatDate(match.startTime as DateTime),
@@ -119,7 +120,9 @@ class MyGamesPage extends StatelessWidget {
                                                 'Public')
                                             ? 'مباراتي العامة'
                                             : 'مباراتي'))
-                                : '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'MY PUBLIC' : 'MY'} GAME',
+                                : (match.isScheduledGame == true
+                                      ? 'MY SCHEDULED GAME'
+                                      : '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'MY PUBLIC' : 'MY'} GAME'),
                             statusLabel: pendingCount > 0
                                 ? tr(
                                     '$pendingCount pending',
@@ -171,6 +174,7 @@ class MyGamesPage extends StatelessWidget {
                         ...history.map((match) {
                           final matchId = match.id.toString();
                           return GameCard(
+                            isScheduled: match.isScheduledGame == true,
                             title: (match.title ?? 'Game').toString(),
                             area: (match.area ?? '-').toString(),
                             time: _formatDate(match.startTime as DateTime),
@@ -782,10 +786,19 @@ class MyGamesPage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      SwitchListTile.adaptive(
-                        contentPadding: EdgeInsets.zero,
-                        value: scheduledGame,
-                        onChanged: (value) {
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          tr('Game type', 'نوع المباراة'),
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SegmentedButton<bool>(
+                        selected: {scheduledGame},
+                        showSelectedIcon: false,
+                        onSelectionChanged: (selection) {
+                          final value = selection.first;
                           setDialogState(() {
                             scheduledGame = value;
                             if (!value) {
@@ -793,15 +806,33 @@ class MyGamesPage extends StatelessWidget {
                             }
                           });
                         },
-                        title: Text(
-                          tr('Scheduled game', 'لعبة مجدولة'),
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                        subtitle: Text(
-                          tr(
-                            'Players choose from time options.',
-                            'اللاعبون يختارون من أوقات اللعب.',
+                        segments: [
+                          ButtonSegment<bool>(
+                            value: false,
+                            icon: const Icon(Icons.event_available_outlined),
+                            label: Text(tr('Normal', 'عادية')),
                           ),
+                          ButtonSegment<bool>(
+                            value: true,
+                            icon: const Icon(Icons.event_repeat_outlined),
+                            label: Text(tr('Scheduled', 'مجدولة')),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        scheduledGame
+                            ? tr(
+                                'Players choose from time options.',
+                                'اللاعبون يختارون من أوقات اللعب.',
+                              )
+                            : tr(
+                                'One confirmed play time.',
+                                'وقت لعب واحد ومؤكد.',
+                              ),
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12,
                         ),
                       ),
                       Align(

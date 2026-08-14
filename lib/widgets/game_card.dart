@@ -17,6 +17,7 @@ class GameCard extends StatelessWidget {
     this.statusLabel,
     this.actionEnabled = true,
     this.highlighted = false,
+    this.isScheduled = false,
     this.accentColor,
     this.surfaceColor,
     this.borderColor,
@@ -39,6 +40,7 @@ class GameCard extends StatelessWidget {
   final String? statusLabel;
   final bool actionEnabled;
   final bool highlighted;
+  final bool isScheduled;
   final Color? accentColor;
   final Color? surfaceColor;
   final Color? borderColor;
@@ -54,13 +56,17 @@ class GameCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent =
         accentColor ??
-        (highlighted ? const Color(0xFF9A6512) : AppColors.green);
+        (isScheduled ? const Color(0xFF2563EB) : AppColors.green);
     final cardColor =
         surfaceColor ??
-        (highlighted ? const Color(0xFFFFFBEB) : AppColors.card);
+        (isScheduled
+            ? const Color(0xFFEFF6FF)
+            : (highlighted ? const Color(0xFFF6FFF9) : AppColors.card));
     final strokeColor =
         borderColor ??
-        (highlighted ? const Color(0xFFF2C94C) : AppColors.stroke);
+        (isScheduled
+            ? const Color(0xFF93C5FD)
+            : (highlighted ? const Color(0xFFCDEAD9) : AppColors.stroke));
     final courtImage = CourtPhoto.imageProvider(courtPhotoData);
 
     return GestureDetector(

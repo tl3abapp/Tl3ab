@@ -515,10 +515,16 @@ class _CreateGamePageState extends State<CreateGamePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: _scheduledGame,
-            onChanged: (value) {
+          Text(
+            _tr('Game type', 'نوع المباراة'),
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          SegmentedButton<bool>(
+            selected: {_scheduledGame},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) {
+              final value = selection.first;
               setState(() {
                 _scheduledGame = value;
                 if (!value) {
@@ -526,16 +532,28 @@ class _CreateGamePageState extends State<CreateGamePage> {
                 }
               });
             },
-            title: Text(
-              _tr('Scheduled game', 'لعبة مجدولة'),
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-            subtitle: Text(
-              _tr(
-                'Invitees can choose from the time options.',
-                'المدعوون يختارون من أوقات اللعب المقترحة.',
+            segments: [
+              ButtonSegment<bool>(
+                value: false,
+                icon: const Icon(Icons.event_available_outlined),
+                label: Text(_tr('Normal', 'عادية')),
               ),
-            ),
+              ButtonSegment<bool>(
+                value: true,
+                icon: const Icon(Icons.event_repeat_outlined),
+                label: Text(_tr('Scheduled', 'مجدولة')),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _scheduledGame
+                ? _tr(
+                    'Invitees can choose from the time options.',
+                    'المدعوون يختارون من أوقات اللعب المقترحة.',
+                  )
+                : _tr('One confirmed play time.', 'وقت لعب واحد ومؤكد.'),
+            style: const TextStyle(color: AppColors.muted, fontSize: 12),
           ),
           const SizedBox(height: 4),
           Text(

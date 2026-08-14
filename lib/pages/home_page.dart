@@ -230,6 +230,7 @@ class _HomePageState extends State<HomePage> {
 
                   return GameCard(
                     highlighted: true,
+                    isScheduled: match.isScheduledGame == true,
                     title: (match.title ?? 'Game').toString(),
                     area: (match.area ?? '-').toString(),
                     time: _formatDate(match.startTime as DateTime),
@@ -252,7 +253,9 @@ class _HomePageState extends State<HomePage> {
                                         'Public')
                                     ? 'مباراتي العامة'
                                     : 'مباراتي'))
-                        : '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'MY PUBLIC' : 'MY'} GAME',
+                        : (match.isScheduledGame == true
+                              ? 'MY SCHEDULED GAME'
+                              : '${(controller.targetScopeLabelForMatch(matchId).toString() == 'Public') ? 'MY PUBLIC' : 'MY'} GAME'),
                     statusLabel: pendingCount > 0
                         ? tr('$pendingCount pending', '$pendingCount بانتظارك')
                         : tr('Host', 'الهوست'),
@@ -328,6 +331,7 @@ class _HomePageState extends State<HomePage> {
                   final isPublicGame = targetLabel == 'Public';
 
                   return GameCard(
+                    isScheduled: match.isScheduledGame == true,
                     title: (match.title ?? 'Game').toString(),
                     area: (match.area ?? '-').toString(),
                     time: _formatDate(match.startTime as DateTime),
