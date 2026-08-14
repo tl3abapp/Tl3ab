@@ -27,8 +27,8 @@ export class PostsController {
   }
 
   @Post(':id/like')
-  like(@Param('id') id: string) {
-    return this.postsService.like(id);
+  like(@Param('id') id: string, @CurrentUserId() currentUserId: string) {
+    return this.postsService.like(id, currentUserId);
   }
 
   @Post(':id/comment')

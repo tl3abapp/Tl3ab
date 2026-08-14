@@ -127,6 +127,22 @@ export class PostEntity {
   createdAt!: Date;
 }
 
+@Entity('post_likes')
+@Unique(['postId', 'userId'])
+export class PostLikeEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ type: 'uuid' })
+  postId!: string;
+
+  @Column({ type: 'uuid' })
+  userId!: string;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+}
+
 @Entity('matches')
 export class MatchEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -310,6 +326,7 @@ export const databaseEntities = [
   UserEntity,
   FollowEntity,
   PostEntity,
+  PostLikeEntity,
   MatchEntity,
   MatchParticipantEntity,
   NotificationEntity,

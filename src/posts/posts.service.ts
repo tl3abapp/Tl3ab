@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PostEntity, UserEntity } from '../database/entities';
+import { PostEntity, PostLikeEntity, UserEntity } from '../database/entities';
 import { CreatePostDto } from './dto/create-post.dto';
 
 @Injectable()
@@ -13,6 +13,8 @@ export class PostsService {
   constructor(
     @InjectRepository(PostEntity)
     private readonly postsRepo: Repository<PostEntity>,
+    @InjectRepository(PostLikeEntity)
+    private readonly postLikesRepo: Repository<PostLikeEntity>,
     @InjectRepository(UserEntity)
     private readonly usersRepo: Repository<UserEntity>,
   ) {}
@@ -36,12 +38,26 @@ export class PostsService {
     return this.postsRepo.save(post);
   }
 
-  async like(postId: string): Promise<PostEntity> {
+  async like(postId: string, userId: string): Promise<PostEntity> {
     const post = await this.postsRepo.findOne({ where: { id: postId } });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
-    post.likes += 1;
+
+    const existing = await this.postLikesRepo.findOne({
+      where: { postId, userId },
+    });
+
+    if (existing) {
+      await this.postLikesRepo.remove(existing);
+      post.likes = Math.max(0, post.likes - 1);
+    } else {
+      await this.postLikesRepo.save(
+        this.postLikesRepo.create({ postId, userId }),
+      );
+      post.likes += 1;
+    }
+
     return this.postsRepo.save(post);
   }
 
