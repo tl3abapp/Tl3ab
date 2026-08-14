@@ -22,7 +22,7 @@ bool isArabicLanguage(String languageCode) {
 }
 
 String brandTitleForLanguage(String languageCode) {
-  return isArabicLanguage(languageCode) ? 'تلعب؟' : 'Tl3b?';
+  return isArabicLanguage(languageCode) ? 'تلعب؟' : 'Til3b?';
 }
 
 TextDirection brandTextDirectionForLanguage(String languageCode) {
@@ -42,7 +42,7 @@ class BrandMark extends StatelessWidget {
         brandLogoAsset,
         fit: BoxFit.contain,
         filterQuality: FilterQuality.high,
-        semanticLabel: 'Tl3b logo',
+        semanticLabel: 'Til3b logo',
       ),
     );
   }
