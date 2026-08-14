@@ -758,6 +758,7 @@ class PadelAppController extends ChangeNotifier {
 
   final List<PadelMatch> _matches = [];
   final List<CommunityPost> _posts = [];
+  final Set<String> _likedPostIds = {};
   final List<ChatThread> _threads = [];
   final List<PlayerContact> _contacts = [];
 
@@ -1794,6 +1795,7 @@ class PadelAppController extends ChangeNotifier {
     required String title,
     required String area,
     required DateTime startTime,
+    bool isScheduledGame = false,
     List<DateTime> timeOptions = const [],
     required MatchTargetScope scope,
     List<String> selectedUserIds = const [],
@@ -1804,6 +1806,12 @@ class PadelAppController extends ChangeNotifier {
     final me = _currentUser;
     final targetIds = _targetIdsForScope(scope, selectedUserIds).toSet();
     final isPublic = scope == MatchTargetScope.publicGame;
+    final scheduledTimeOptions = isScheduledGame
+        ? _timeOptionsToIso(startTime, timeOptions)
+        : const <String>[];
+    final localTimeOptions = isScheduledGame
+        ? _buildLocalTimeOptions(startTime, timeOptions)
+        : const <MatchTimeOption>[];
 
     if (me != null) {
       try {
@@ -1820,9 +1828,7 @@ class PadelAppController extends ChangeNotifier {
           skillMax: _skillRangeForLevel(skillLevel).$2,
           hostSide: hostSide,
           courtPhotoData: courtPhotoData,
-          timeOptions: timeOptions.isEmpty
-              ? const []
-              : _timeOptionsToIso(startTime, timeOptions),
+          timeOptions: scheduledTimeOptions,
         );
 
         await syncFromApi();
@@ -1857,7 +1863,7 @@ class PadelAppController extends ChangeNotifier {
       courtName: 'Pending Court',
       courtPhotoData: courtPhotoData,
       startTime: startTime,
-      timeOptions: _buildLocalTimeOptions(startTime, timeOptions),
+      timeOptions: localTimeOptions,
       distanceKm: 0.0,
       maxPlayers: 4,
       joinedPlayers: 1,
@@ -1883,44 +1889,50 @@ class PadelAppController extends ChangeNotifier {
       ],
     );
 
-    _matches.insert(0, match);
-    _myPrivateGames.insert(0, match);
-    _matchRules[match.id] = MatchTargetRule(
-      scope: scope,
-      targetUserIds: targetIds,
-    );
-    _matchHostIds[match.id] = me?.id ?? '';
-    _acceptedPlayersByMatch[match.id] = {if (me != null) me.id};
-    _ensureGameThread(match);
-    _localMatchIds.add(match.id);
+    try {
+      _matches.insert(0, match);
+      _myPrivateGames.insert(0, match);
+      _matchRules[match.id] = MatchTargetRule(
+        scope: scope,
+        targetUserIds: targetIds,
+      );
+      _matchHostIds[match.id] = me?.id ?? '';
+      _acceptedPlayersByMatch[match.id] = {if (me != null) me.id};
+      _ensureGameThread(match);
+      _localMatchIds.add(match.id);
 
-    final now = DateTime.now();
-    _matchInvitations.addAll(
-      targetIds.map(
-        (userId) => MatchInvitation(
-          id: 'i${now.microsecondsSinceEpoch}_$userId',
-          matchId: match.id,
-          playerId: userId,
-          sentAt: now,
+      final now = DateTime.now();
+      _matchInvitations.addAll(
+        targetIds.map(
+          (userId) => MatchInvitation(
+            id: 'i${now.microsecondsSinceEpoch}_$userId',
+            matchId: match.id,
+            playerId: userId,
+            sentAt: now,
+          ),
         ),
-      ),
-    );
+      );
 
-    _posts.insert(
-      0,
-      CommunityPost(
-        id: 'p${DateTime.now().microsecondsSinceEpoch}',
-        author: me?.name ?? 'You',
-        area: area.trim(),
-        content:
-            '${match.visibility == MatchVisibility.publicGame ? 'Public game' : 'Game'} created. Tap to ${_isInstantJoinForRule(_matchRules[match.id]!) ? 'join' : 'request'}.',
-        createdAt: now,
-        activityType: ActivityType.gameInvite,
-      ),
-    );
+      final rule = _matchRules[match.id];
+      _posts.insert(
+        0,
+        CommunityPost(
+          id: 'p${DateTime.now().microsecondsSinceEpoch}',
+          author: me?.name ?? 'You',
+          area: area.trim(),
+          content:
+              '${match.visibility == MatchVisibility.publicGame ? 'Public game' : 'Game'} created. Tap to ${rule != null && _isInstantJoinForRule(rule) ? 'join' : 'request'}.',
+          createdAt: now,
+          activityType: ActivityType.gameInvite,
+        ),
+      );
 
-    await _persistLocalHostedMatchesForCurrentUser();
-    notifyListeners();
+      await _persistLocalHostedMatchesForCurrentUser();
+      notifyListeners();
+    } catch (_) {
+      // Returning the created match keeps the host flow usable even if local
+      // cache/social activity fails on a device.
+    }
     return CreatedGameResult(
       match: match,
       message: targetIds.isEmpty
@@ -2462,13 +2474,27 @@ class PadelAppController extends ChangeNotifier {
     if (post == null) {
       return;
     }
-    post.likes += 1;
-    notifyListeners();
+    final previousLikes = post.likes;
 
     try {
-      await _api.likePost(postId);
+      final updated = await _api.likePost(postId);
+      final updatedLikes = _asInt(updated['likes'], post.likes);
+      if (updatedLikes > previousLikes) {
+        _likedPostIds.add(postId);
+      } else if (updatedLikes < previousLikes) {
+        _likedPostIds.remove(postId);
+      }
+      post.likes = updatedLikes;
       await syncFromApi();
-    } catch (_) {}
+    } catch (_) {
+      if (_likedPostIds.remove(postId)) {
+        post.likes = post.likes > 0 ? post.likes - 1 : 0;
+      } else {
+        _likedPostIds.add(postId);
+        post.likes += 1;
+      }
+      notifyListeners();
+    }
   }
 
   Future<String> commentOnPost(String postId, String text) async {

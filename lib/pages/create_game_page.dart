@@ -181,6 +181,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
         title: title,
         area: area,
         startTime: startsAt,
+        isScheduledGame: _scheduledGame,
         timeOptions: _scheduledGame
             ? _extraTimeOptions.toList(growable: false)
             : const [],
