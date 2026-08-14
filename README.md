@@ -29,11 +29,14 @@ Use these env vars on Render:
 
 - `DATABASE_URL` -> Neon connection string
 - `DB_SSL=true`
-- `DB_SYNC=true` (MVP only)
+- `DB_SYNC=false` for release after the latest schema has deployed once
 - `API_PREFIX=api` (required when this service also hosts the Flutter web app)
 - `DB_DRIVER` should be empty (or unset)
 - `DB_LOCAL_PERSIST` can be ignored on Render when using Neon
 - `PORT` provided by Render automatically
+
+Production refuses to start without `DATABASE_URL` so it cannot accidentally fall
+back to temporary SQL.js storage and lose users after a redeploy.
 
 Start command on Render:
 

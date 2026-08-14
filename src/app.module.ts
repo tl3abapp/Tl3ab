@@ -23,11 +23,24 @@ import { UsersModule } from './users/users.module';
       useFactory: (config: ConfigService) => {
         const databaseUrl = config.get<string>('DATABASE_URL');
         const dbDriver = config.get<string>('DB_DRIVER', '').toLowerCase();
-        const synchronize = config.get<string>('DB_SYNC', 'true') === 'true';
+        const isProduction =
+          config.get<string>('NODE_ENV', 'development').toLowerCase() ===
+          'production';
+        const allowSqljsInProduction =
+          config.get<string>('ALLOW_SQLJS_IN_PROD', 'false') === 'true';
+        const synchronize =
+          config.get<string>('DB_SYNC', databaseUrl ? 'false' : 'true') ===
+          'true';
         const useLocalPersistence =
           config.get<string>('DB_LOCAL_PERSIST', 'true') === 'true';
 
         if (dbDriver === 'sqljs' || !databaseUrl) {
+          if (isProduction && !allowSqljsInProduction) {
+            throw new Error(
+              'DATABASE_URL is required in production. Refusing to start with local SQL.js storage.',
+            );
+          }
+
           if (useLocalPersistence) {
             const configuredPath = config.get<string>(
               'DB_LOCAL_PATH',
