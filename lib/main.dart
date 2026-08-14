@@ -1820,7 +1820,9 @@ class PadelAppController extends ChangeNotifier {
           skillMax: _skillRangeForLevel(skillLevel).$2,
           hostSide: hostSide,
           courtPhotoData: courtPhotoData,
-          timeOptions: _timeOptionsToIso(startTime, timeOptions),
+          timeOptions: timeOptions.isEmpty
+              ? const []
+              : _timeOptionsToIso(startTime, timeOptions),
         );
 
         await syncFromApi();
@@ -3304,6 +3306,8 @@ class PadelAppController extends ChangeNotifier {
         courtName: courtName,
         courtPhotoData: courtPhotoData,
         timeOptions: startTime == null
+            ? const []
+            : timeOptions.isEmpty
             ? const []
             : _timeOptionsToIso(startTime, timeOptions),
       );

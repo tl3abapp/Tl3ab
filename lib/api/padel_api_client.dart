@@ -275,7 +275,7 @@ class PadelApiClient {
       'skillMax': skillMax,
       if (hostSide != null && hostSide.isNotEmpty) 'hostSide': hostSide,
       if (inviteUserIds.isNotEmpty) 'inviteUserIds': inviteUserIds,
-      if (timeOptions.length > 1) 'timeOptions': timeOptions,
+      if (timeOptions.isNotEmpty) 'timeOptions': timeOptions,
     });
   }
 
