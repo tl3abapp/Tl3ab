@@ -190,7 +190,9 @@ class _CreateGamePageState extends State<CreateGamePage> {
 
     String message;
     try {
-      final inviteLink = createdResult.match.inviteLink?.toString() ?? '';
+      final inviteLink = widget.controller
+          .inviteLinkForMatch(createdResult.match)
+          .toString();
       message = inviteLink.isEmpty
           ? createdResult.message.toString()
           : _tr('Game + link created.', 'تم إنشاء المباراة والرابط.');

@@ -38,6 +38,39 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  String _inviteLinkForMatch(dynamic match) {
+    try {
+      final link = controller.inviteLinkForMatch(match).toString().trim();
+      if (link.isNotEmpty) {
+        return link;
+      }
+    } catch (_) {
+      // Older controller builds may not expose the helper yet.
+    }
+    return match?.inviteLink?.toString().trim() ?? '';
+  }
+
+  Rect _sharePositionOrigin(BuildContext context) {
+    final renderObject = context.findRenderObject();
+    if (renderObject is RenderBox && renderObject.hasSize) {
+      return renderObject.localToGlobal(Offset.zero) & renderObject.size;
+    }
+
+    final overlayObject = Overlay.maybeOf(context)?.context.findRenderObject();
+    if (overlayObject is RenderBox && overlayObject.hasSize) {
+      final center = overlayObject.localToGlobal(
+        overlayObject.size.center(Offset.zero),
+      );
+      return Rect.fromCenter(center: center, width: 1, height: 1);
+    }
+
+    return const Rect.fromLTWH(0, 0, 1, 1);
+  }
+
+  Future<void> _shareInvite(BuildContext context, String text) async {
+    await Share.share(text, sharePositionOrigin: _sharePositionOrigin(context));
+  }
+
   @override
   Widget build(BuildContext context) {
     final userName = (controller.currentUser?.name ?? 'Player').toString();
@@ -226,7 +259,7 @@ class _HomePageState extends State<HomePage> {
                       (controller.pendingRequestsCountForMatch(matchId)
                           as int?) ??
                       0;
-                  final inviteLink = match.inviteLink?.toString() ?? '';
+                  final inviteLink = _inviteLinkForMatch(match);
 
                   return GameCard(
                     highlighted: true,
@@ -267,7 +300,8 @@ class _HomePageState extends State<HomePage> {
                         : tr('Share', 'مشاركة'),
                     onSecondaryAction: inviteLink.isEmpty
                         ? null
-                        : () => Share.share(
+                        : () => _shareInvite(
+                            context,
                             '${tr('Join my padel game:', 'انضم لمباراة البادل:')}\n$inviteLink',
                           ),
                     onMenuTap: () => _openRequestsDialog(context, matchId),
@@ -440,8 +474,7 @@ class _HomePageState extends State<HomePage> {
                         if (created != null && context.mounted) {
                           try {
                             final match = created.match;
-                            final inviteLink =
-                                match.inviteLink?.toString() ?? '';
+                            final inviteLink = _inviteLinkForMatch(match);
                             _showCreatedGameActions(
                               context,
                               match.title.toString(),
@@ -482,7 +515,7 @@ class _HomePageState extends State<HomePage> {
               : SnackBarAction(
                   label: 'Share',
                   onPressed: () {
-                    Share.share('Join my padel game:\n$inviteLink');
+                    _shareInvite(context, 'Join my padel game:\n$inviteLink');
                   },
                 ),
         ),
@@ -547,7 +580,7 @@ class _HomePageState extends State<HomePage> {
 
   void _openGameDetailsSheet(BuildContext context, dynamic match) {
     final joined = (match.joinedParticipants as List).toList();
-    final inviteLink = match.inviteLink?.toString() ?? '';
+    final inviteLink = _inviteLinkForMatch(match);
     final matchId = match.id.toString();
     final canChat = (controller.canChatInMatch(matchId) as bool?) ?? false;
     final languageCode = controller.generalSettings.languageCode.toString();
@@ -676,7 +709,8 @@ class _HomePageState extends State<HomePage> {
               if (inviteLink.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 FilledButton.icon(
-                  onPressed: () => Share.share(
+                  onPressed: () => _shareInvite(
+                    context,
                     '${tr('Join my padel game:', 'انضم لمباراة البادل:')}\n$inviteLink',
                   ),
                   icon: const Icon(Icons.ios_share_outlined),
@@ -921,7 +955,7 @@ class _HomePageState extends State<HomePage> {
                   TextField(
                     controller: linkController,
                     decoration: const InputDecoration(
-                      hintText: 'https://padelconnect.app/join?m=...&code=...',
+                      hintText: 'https://www.til3b.com/join?m=...&code=...',
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -985,7 +1019,7 @@ class _HomePageState extends State<HomePage> {
             final requests = (controller.allRequestsForMatch(matchId) as List)
                 .toList();
             final match = controller.matchById(matchId);
-            final inviteLink = match?.inviteLink?.toString() ?? '';
+            final inviteLink = _inviteLinkForMatch(match);
 
             return SafeArea(
               child: ListView(
@@ -1007,7 +1041,10 @@ class _HomePageState extends State<HomePage> {
                         IconButton(
                           tooltip: 'Share',
                           onPressed: () {
-                            Share.share('Join my padel game:\n$inviteLink');
+                            _shareInvite(
+                              context,
+                              'Join my padel game:\n$inviteLink',
+                            );
                           },
                           icon: const Icon(Icons.share_outlined),
                         ),
@@ -1068,7 +1105,8 @@ class _HomePageState extends State<HomePage> {
                           onPressed: inviteLink.isEmpty
                               ? null
                               : () {
-                                  Share.share(
+                                  _shareInvite(
+                                    context,
                                     'Join my padel game:\n$inviteLink',
                                   );
                                 },

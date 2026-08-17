@@ -1980,10 +1980,8 @@ class PadelAppController extends ChangeNotifier {
       visibility: isPublic
           ? MatchVisibility.publicGame
           : MatchVisibility.privateGame,
-      inviteCode: isPublic ? null : inviteCode,
-      inviteLink: isPublic
-          ? null
-          : _buildInviteLink(matchId: matchId, inviteCode: inviteCode),
+      inviteCode: inviteCode,
+      inviteLink: _buildInviteLink(matchId: matchId, inviteCode: inviteCode),
       participants: [
         if (me != null)
           MatchParticipantSummary(
@@ -2353,7 +2351,12 @@ class PadelAppController extends ChangeNotifier {
 
     final matchId = uri.queryParameters['m'];
     final inviteCode = uri.queryParameters['code'];
-    if (matchId == null || inviteCode == null) {
+    if (matchId == null) {
+      return 'Invite link is missing game details.';
+    }
+    final localMatch = matchById(matchId);
+    final isPublicInvite = localMatch?.visibility == MatchVisibility.publicGame;
+    if (inviteCode == null && !isPublicInvite) {
       return 'Invite link is missing game details.';
     }
 
@@ -4663,10 +4666,40 @@ class PadelAppController extends ChangeNotifier {
     required String matchId,
     required String inviteCode,
   }) {
-    return Uri.https('padelconnect.app', '/join', {
+    return Uri.https('www.til3b.com', '/join', {
       'm': matchId,
       'code': inviteCode,
     }).toString();
+  }
+
+  String _buildPublicMatchLink(String matchId) {
+    return Uri.https('www.til3b.com', '/join', {'m': matchId}).toString();
+  }
+
+  String inviteLinkForMatch(dynamic match) {
+    if (match == null) {
+      return '';
+    }
+
+    final rawLink = match.inviteLink?.toString().trim() ?? '';
+    if (rawLink.isNotEmpty) {
+      return rawLink.replaceFirst(
+        'https://padelconnect.app/',
+        'https://www.til3b.com/',
+      );
+    }
+
+    final matchId = match.id?.toString() ?? '';
+    if (matchId.isEmpty) {
+      return '';
+    }
+
+    final rawCode = match.inviteCode?.toString().trim() ?? '';
+    if (rawCode.isNotEmpty) {
+      return _buildInviteLink(matchId: matchId, inviteCode: rawCode);
+    }
+
+    return _buildPublicMatchLink(matchId);
   }
 }
 
@@ -6913,7 +6946,7 @@ class _PrivateGamesTabState extends State<PrivateGamesTab> {
                   controller: _joinLinkController,
                   decoration: const InputDecoration(
                     labelText: 'Invite link',
-                    hintText: 'https://padelconnect.app/join?m=...&code=...',
+                    hintText: 'https://www.til3b.com/join?m=...&code=...',
                     border: OutlineInputBorder(),
                   ),
                 ),

@@ -16,6 +16,39 @@ class MyGamesPage extends StatelessWidget {
 
   final dynamic controller;
 
+  String _inviteLinkForMatch(dynamic match) {
+    try {
+      final link = controller.inviteLinkForMatch(match).toString().trim();
+      if (link.isNotEmpty) {
+        return link;
+      }
+    } catch (_) {
+      // Older controller builds may not expose the helper yet.
+    }
+    return match?.inviteLink?.toString().trim() ?? '';
+  }
+
+  Rect _sharePositionOrigin(BuildContext context) {
+    final renderObject = context.findRenderObject();
+    if (renderObject is RenderBox && renderObject.hasSize) {
+      return renderObject.localToGlobal(Offset.zero) & renderObject.size;
+    }
+
+    final overlayObject = Overlay.maybeOf(context)?.context.findRenderObject();
+    if (overlayObject is RenderBox && overlayObject.hasSize) {
+      final center = overlayObject.localToGlobal(
+        overlayObject.size.center(Offset.zero),
+      );
+      return Rect.fromCenter(center: center, width: 1, height: 1);
+    }
+
+    return const Rect.fromLTWH(0, 0, 1, 1);
+  }
+
+  Future<void> _shareInvite(BuildContext context, String text) async {
+    await Share.share(text, sharePositionOrigin: _sharePositionOrigin(context));
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -94,7 +127,7 @@ class MyGamesPage extends StatelessWidget {
                               (controller.pendingRequestsCountForMatch(matchId)
                                   as int?) ??
                               0;
-                          final inviteLink = match.inviteLink?.toString() ?? '';
+                          final inviteLink = _inviteLinkForMatch(match);
 
                           return GameCard(
                             highlighted: true,
@@ -137,7 +170,10 @@ class MyGamesPage extends StatelessWidget {
                                 : tr('Share', 'مشاركة'),
                             onSecondaryAction: inviteLink.isEmpty
                                 ? null
-                                : () => Share.share(shareText(inviteLink)),
+                                : () => _shareInvite(
+                                    context,
+                                    shareText(inviteLink),
+                                  ),
                             onTap: () => _openGameDetailsSheet(context, match),
                             onMenuTap: () => _openManageSheet(context, matchId),
                             onPrimaryAction: () =>
@@ -213,7 +249,7 @@ class MyGamesPage extends StatelessWidget {
 
   void _openGameDetailsSheet(BuildContext context, dynamic match) {
     final joined = (match.joinedParticipants as List).toList();
-    final inviteLink = match.inviteLink?.toString() ?? '';
+    final inviteLink = _inviteLinkForMatch(match);
     final matchId = match.id.toString();
     final canChat = (controller.canChatInMatch(matchId) as bool?) ?? false;
     final languageCode = controller.generalSettings.languageCode.toString();
@@ -342,7 +378,8 @@ class MyGamesPage extends StatelessWidget {
               if (inviteLink.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 FilledButton.icon(
-                  onPressed: () => Share.share(
+                  onPressed: () => _shareInvite(
+                    context,
                     '${tr('Join my padel game:', 'انضم لمباراة البادل:')}\n$inviteLink',
                   ),
                   icon: const Icon(Icons.ios_share_outlined),
@@ -444,7 +481,7 @@ class MyGamesPage extends StatelessWidget {
             final match = controller.matchById(matchId);
             final requests = (controller.allRequestsForMatch(matchId) as List)
                 .toList();
-            final inviteLink = match?.inviteLink?.toString() ?? '';
+            final inviteLink = _inviteLinkForMatch(match);
 
             return SafeArea(
               child: ListView(
@@ -520,7 +557,8 @@ class MyGamesPage extends StatelessWidget {
                         child: FilledButton.icon(
                           onPressed: inviteLink.isEmpty
                               ? null
-                              : () => Share.share(
+                              : () => _shareInvite(
+                                  context,
                                   '${tr('Join my padel game:', 'انضم لمباراة البادل:')}\n$inviteLink',
                                 ),
                           icon: const Icon(Icons.ios_share_outlined),
