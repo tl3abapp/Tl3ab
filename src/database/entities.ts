@@ -143,6 +143,41 @@ export class PostLikeEntity {
   createdAt!: Date;
 }
 
+@Entity('post_reports')
+@Unique(['postId', 'reporterId'])
+export class PostReportEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ type: 'uuid' })
+  postId!: string;
+
+  @Column({ type: 'uuid' })
+  reporterId!: string;
+
+  @Column({ type: 'text', nullable: true })
+  reason!: string | null;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+}
+
+@Entity('user_blocks')
+@Unique(['blockerId', 'blockedUserId'])
+export class UserBlockEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ type: 'uuid' })
+  blockerId!: string;
+
+  @Column({ type: 'uuid' })
+  blockedUserId!: string;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+}
+
 @Entity('matches')
 export class MatchEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -327,6 +362,8 @@ export const databaseEntities = [
   FollowEntity,
   PostEntity,
   PostLikeEntity,
+  PostReportEntity,
+  UserBlockEntity,
   MatchEntity,
   MatchParticipantEntity,
   NotificationEntity,

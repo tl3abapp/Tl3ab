@@ -16,8 +16,8 @@ export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Get()
-  list() {
-    return this.postsService.list();
+  list(@CurrentUserId() currentUserId: string) {
+    return this.postsService.list(currentUserId);
   }
 
   @Post()
@@ -34,6 +34,20 @@ export class PostsController {
   @Post(':id/comment')
   comment(@Param('id') id: string) {
     return this.postsService.comment(id);
+  }
+
+  @Post(':id/report')
+  report(
+    @Param('id') id: string,
+    @CurrentUserId() currentUserId: string,
+    @Body('reason') reason?: string,
+  ) {
+    return this.postsService.report(id, currentUserId, reason);
+  }
+
+  @Post(':id/block-author')
+  blockAuthor(@Param('id') id: string, @CurrentUserId() currentUserId: string) {
+    return this.postsService.blockAuthor(id, currentUserId);
   }
 
   @Delete(':id')
