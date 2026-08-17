@@ -121,31 +121,64 @@ class _CommunityPageState extends State<CommunityPage> {
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
-                      if ((widget.controller.canDeletePost(post.id.toString())
-                              as bool?) ??
-                          false)
-                        PopupMenuButton<String>(
-                          tooltip: tr('Post options', 'خيارات المنشور'),
-                          onSelected: (value) async {
-                            if (value != 'delete') {
+                      PopupMenuButton<String>(
+                        tooltip: tr('Post options', 'خيارات المنشور'),
+                        onSelected: (value) async {
+                          final postId = post.id.toString();
+                          String result;
+                          switch (value) {
+                            case 'delete':
+                              result = (await widget.controller.deletePost(
+                                postId,
+                              )).toString();
+                              break;
+                            case 'report':
+                              result = (await widget.controller.reportPost(
+                                postId,
+                              )).toString();
+                              break;
+                            case 'block':
+                              result = (await widget.controller.blockPostAuthor(
+                                postId,
+                              )).toString();
+                              break;
+                            default:
                               return;
-                            }
-                            final result = await widget.controller.deletePost(
-                              post.id.toString(),
-                            );
-                            if (!mounted) {
-                              return;
-                            }
-                            _showSnack(result.toString());
-                            setState(() {});
-                          },
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Text(tr('Delete post', 'حذف المنشور')),
-                            ),
-                          ],
-                        ),
+                          }
+                          if (!mounted) {
+                            return;
+                          }
+                          _showSnack(result);
+                          setState(() {});
+                        },
+                        itemBuilder: (context) {
+                          final canDelete =
+                              (widget.controller.canDeletePost(
+                                    post.id.toString(),
+                                  )
+                                  as bool?) ??
+                              false;
+                          return [
+                            if (canDelete)
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text(tr('Delete post', 'حذف المنشور')),
+                              )
+                            else ...[
+                              PopupMenuItem(
+                                value: 'report',
+                                child: Text(
+                                  tr('Report post', 'إبلاغ عن المنشور'),
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'block',
+                                child: Text(tr('Block user', 'حظر المستخدم')),
+                              ),
+                            ],
+                          ];
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),

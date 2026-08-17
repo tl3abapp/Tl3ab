@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:padel_connect/api/padel_api_client.dart';
 import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/theme/app_theme.dart';
 
@@ -164,6 +165,11 @@ class _CreateGamePageState extends State<CreateGamePage> {
 
     final startsAt = _primaryStartTime;
 
+    if (startsAt.isBefore(DateTime.now())) {
+      _showSnack(_tr('Choose a future time.', 'اختر وقت قادم.'));
+      return;
+    }
+
     if (_scheduledGame && _extraTimeOptions.isEmpty) {
       _showSnack(
         _tr(
@@ -204,11 +210,21 @@ class _CreateGamePageState extends State<CreateGamePage> {
             : _tr('Game + link created.', 'تم إنشاء المباراة والرابط.'),
       );
       Navigator.of(context).pop(result);
-    } catch (_) {
+    } on ApiException catch (error) {
       if (!mounted) {
         return;
       }
-      _showSnack(_tr('Could not create game.', 'تعذر إنشاء المباراة.'));
+      _showSnack(error.message);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showSnack(
+        _tr(
+          'Could not create game. Please check the details.',
+          'تعذر إنشاء المباراة. تأكد من البيانات.',
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _saving = false);

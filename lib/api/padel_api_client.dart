@@ -93,6 +93,17 @@ class PadelApiClient {
     return _postJson('/posts/$postId/comment', {});
   }
 
+  Future<void> reportPost({
+    required String postId,
+    required String reason,
+  }) async {
+    await _postJson('/posts/$postId/report', {'reason': reason});
+  }
+
+  Future<Map<String, dynamic>> blockPostAuthor(String postId) async {
+    return _postJson('/posts/$postId/block-author', {});
+  }
+
   Future<void> deletePost({
     required String postId,
     required String authorId,

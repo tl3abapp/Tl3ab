@@ -32,6 +32,8 @@ class ProfilePage extends StatelessWidget {
     final following = (controller.following as List).length;
     final circle = (controller.circleContacts as List).length;
     final games = (controller.myHostedMatches as List).length;
+    final reportedPosts = (controller.reportedPostsCount as int?) ?? 0;
+    final blockedUsers = (controller.blockedUsersCount as int?) ?? 0;
     final isDeactivated =
         (controller.isCurrentAccountDeactivated as bool?) ?? false;
     final deletionDate = controller.currentAccountDeletionDate as DateTime?;
@@ -286,6 +288,27 @@ class ProfilePage extends StatelessWidget {
                             icon: Icons.settings_outlined,
                             title: tr('Settings', 'الإعدادات'),
                             onTap: onOpenSettings,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                      child: Column(
+                        children: [
+                          _infoTile(
+                            icon: Icons.shield_outlined,
+                            label: tr('Reported posts', 'البلاغات'),
+                            value: '$reportedPosts',
+                          ),
+                          const Divider(height: 1),
+                          _infoTile(
+                            icon: Icons.block_outlined,
+                            label: tr('Blocked users', 'المحظورين'),
+                            value: '$blockedUsers',
                           ),
                         ],
                       ),

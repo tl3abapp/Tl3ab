@@ -704,6 +704,8 @@ class PadelAppController extends ChangeNotifier {
       'padel.read_notifications.v1';
   static const String _authTokenStorageKey = 'padel.auth_token.v1';
   static const String _localMatchesStoragePrefix = 'padel.local_matches.v1.';
+  static const String _reportedPostsStorageKey = 'padel.reported_posts.v1';
+  static const String _blockedUsersStorageKey = 'padel.blocked_users.v1';
 
   PrivacySettings _privacySettings = const PrivacySettings();
   GeneralSettings _generalSettings = const GeneralSettings();
@@ -759,6 +761,8 @@ class PadelAppController extends ChangeNotifier {
   final List<PadelMatch> _matches = [];
   final List<CommunityPost> _posts = [];
   final Set<String> _likedPostIds = {};
+  final Set<String> _reportedPostIds = {};
+  final Set<String> _blockedUserIds = {};
   final List<ChatThread> _threads = [];
   final List<PlayerContact> _contacts = [];
 
@@ -793,14 +797,26 @@ class PadelAppController extends ChangeNotifier {
 
   List<CommunityPost> get feedPosts {
     final sameArea = _posts
+        .where(_shouldShowPost)
         .where((post) => post.area == _selectedArea)
         .toList();
     final otherAreas = _posts
+        .where(_shouldShowPost)
         .where((post) => post.area != _selectedArea)
         .toList();
     sameArea.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     otherAreas.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return [...sameArea, ...otherAreas];
+  }
+
+  int get reportedPostsCount => _reportedPostIds.length;
+  int get blockedUsersCount => _blockedUserIds.length;
+
+  bool _shouldShowPost(CommunityPost post) {
+    final authorId = post.authorId;
+    return authorId == null ||
+        authorId.isEmpty ||
+        !_blockedUserIds.contains(authorId);
   }
 
   List<ChatThread> get threads {
@@ -1200,7 +1216,7 @@ class PadelAppController extends ChangeNotifier {
   }
 
   List<CommunityPost> get allPosts {
-    final items = _posts.toList();
+    final items = _posts.where(_shouldShowPost).toList();
     items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return items;
   }
@@ -2540,6 +2556,63 @@ class PadelAppController extends ChangeNotifier {
       _posts.removeWhere((entry) => entry.id == postId);
       notifyListeners();
       return 'Post deleted locally.';
+    }
+  }
+
+  Future<String> reportPost(
+    String postId, {
+    String reason = 'Inappropriate',
+  }) async {
+    final me = _currentUser;
+    final post = _posts.where((entry) => entry.id == postId).firstOrNull;
+    if (me == null) {
+      return 'Sign in to report posts.';
+    }
+    if (post == null) {
+      return 'Post is not available anymore.';
+    }
+    if (post.authorId == me.id) {
+      return 'You cannot report your own post.';
+    }
+
+    _reportedPostIds.add(postId);
+    notifyListeners();
+    unawaited(_persistSafetyState());
+
+    try {
+      await _api.reportPost(postId: postId, reason: reason);
+      return 'Post reported. Thank you.';
+    } catch (_) {
+      return 'Post reported locally.';
+    }
+  }
+
+  Future<String> blockPostAuthor(String postId) async {
+    final me = _currentUser;
+    final post = _posts.where((entry) => entry.id == postId).firstOrNull;
+    final authorId = post?.authorId;
+    if (me == null) {
+      return 'Sign in to block users.';
+    }
+    if (post == null || authorId == null || authorId.isEmpty) {
+      return 'User is not available anymore.';
+    }
+    if (authorId == me.id) {
+      return 'You cannot block yourself.';
+    }
+
+    _blockedUserIds.add(authorId);
+    notifyListeners();
+    unawaited(_persistSafetyState());
+
+    try {
+      await _api.blockPostAuthor(postId);
+      await syncFromApi();
+      return '${post.author} blocked.';
+    } catch (_) {
+      _posts.removeWhere((entry) => entry.authorId == authorId);
+      notifyListeners();
+      return '${post.author} blocked locally.';
     }
   }
 
@@ -3959,6 +4032,26 @@ class PadelAppController extends ChangeNotifier {
             ..addAll(decoded.map((entry) => entry.toString()));
         }
       }
+
+      final rawReportedPosts = prefs.getString(_reportedPostsStorageKey);
+      if (rawReportedPosts != null && rawReportedPosts.isNotEmpty) {
+        final decoded = jsonDecode(rawReportedPosts);
+        if (decoded is List) {
+          _reportedPostIds
+            ..clear()
+            ..addAll(decoded.map((entry) => entry.toString()));
+        }
+      }
+
+      final rawBlockedUsers = prefs.getString(_blockedUsersStorageKey);
+      if (rawBlockedUsers != null && rawBlockedUsers.isNotEmpty) {
+        final decoded = jsonDecode(rawBlockedUsers);
+        if (decoded is List) {
+          _blockedUserIds
+            ..clear()
+            ..addAll(decoded.map((entry) => entry.toString()));
+        }
+      }
     } catch (_) {}
 
     notifyListeners();
@@ -3994,6 +4087,20 @@ class PadelAppController extends ChangeNotifier {
       await prefs.setString(
         _readNotificationsStorageKey,
         jsonEncode(_readNotificationIds.toList(growable: false)),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _persistSafetyState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _reportedPostsStorageKey,
+        jsonEncode(_reportedPostIds.toList(growable: false)),
+      );
+      await prefs.setString(
+        _blockedUsersStorageKey,
+        jsonEncode(_blockedUserIds.toList(growable: false)),
       );
     } catch (_) {}
   }
