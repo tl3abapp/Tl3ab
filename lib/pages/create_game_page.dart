@@ -222,13 +222,22 @@ class _CreateGamePageState extends State<CreateGamePage> {
       );
     } catch (error) {
       debugPrint('Offline game fallback failed: $error');
-      if (mounted) {
-        _showSnack(
-          _tr(
-            'Could not create game. Please check the details.',
-            'تعذر إنشاء المباراة. تأكد من البيانات.',
-          ),
+      try {
+        return await widget.controller.createPrivateGameQuick(
+          title: _titleController.text.trim(),
+          area: _areaController.text.trim().isEmpty
+              ? (widget.controller.selectedArea ?? '').toString()
+              : _areaController.text.trim(),
+          startTime: _primaryStartTime,
         );
+      } catch (legacyError) {
+        debugPrint('Legacy game fallback failed: $legacyError');
+        if (mounted) {
+          _showSnack(
+            '${_tr('Could not create game:', 'تعذر إنشاء المباراة:')} '
+            '$legacyError',
+          );
+        }
       }
       return null;
     }
