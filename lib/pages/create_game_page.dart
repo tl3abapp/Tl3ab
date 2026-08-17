@@ -1,8 +1,4 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:padel_connect/api/padel_api_client.dart';
 import 'package:padel_connect/app_language.dart';
 import 'package:padel_connect/theme/app_theme.dart';
@@ -20,7 +16,6 @@ class _CreateGamePageState extends State<CreateGamePage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _areaController = TextEditingController();
   final Set<String> _selectedUserIds = <String>{};
-  final ImagePicker _picker = ImagePicker();
 
   DateTime _date = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _time = const TimeOfDay(hour: 20, minute: 30);
@@ -29,7 +24,6 @@ class _CreateGamePageState extends State<CreateGamePage> {
   String _targetKey = 'circle';
   String _ratingFilter = 'all';
   String _hostSide = 'left';
-  Uint8List? _courtPhotoBytes;
   final List<DateTime> _extraTimeOptions = [];
 
   String get _languageCode =>
@@ -129,23 +123,6 @@ class _CreateGamePageState extends State<CreateGamePage> {
     setState(() => _extraTimeOptions.add(option));
   }
 
-  Future<void> _pickCourtPhoto() async {
-    final file = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 72,
-      maxWidth: 1280,
-    );
-    if (file == null) {
-      return;
-    }
-
-    final bytes = await file.readAsBytes();
-    if (!mounted) {
-      return;
-    }
-    setState(() => _courtPhotoBytes = bytes);
-  }
-
   Future<void> _create() async {
     final title = _titleController.text.trim();
     final fallbackArea = (widget.controller.selectedArea ?? '').toString();
@@ -182,8 +159,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
 
     setState(() => _saving = true);
     try {
-      final scope = widget.controller.parseTargetScopeKey(_targetKey);
-      final result = await widget.controller.createTargetedGame(
+      final result = await widget.controller.createTargetedGameFromForm(
         title: title,
         area: area,
         startTime: startsAt,
@@ -191,12 +167,9 @@ class _CreateGamePageState extends State<CreateGamePage> {
         timeOptions: _scheduledGame
             ? _extraTimeOptions.toList(growable: false)
             : const [],
-        scope: scope,
+        targetKey: _targetKey,
         selectedUserIds: _selectedUserIds.toList(growable: false),
         hostSide: _hostSide,
-        courtPhotoData: _courtPhotoBytes == null
-            ? null
-            : base64Encode(_courtPhotoBytes!),
       );
 
       if (!mounted) {
@@ -219,6 +192,7 @@ class _CreateGamePageState extends State<CreateGamePage> {
       if (!mounted) {
         return;
       }
+      debugPrint('Create game failed: $error');
       _showSnack(
         _tr(
           'Could not create game. Please check the details.',
@@ -309,8 +283,6 @@ class _CreateGamePageState extends State<CreateGamePage> {
               ),
               const SizedBox(height: 14),
               _scheduleOptionsSection(),
-              const SizedBox(height: 14),
-              _courtPhotoPicker(),
               const SizedBox(height: 14),
               Text(
                 _tr('Your side', 'جهتك'),
@@ -463,59 +435,6 @@ class _CreateGamePageState extends State<CreateGamePage> {
           ),
         );
       },
-    );
-  }
-
-  Widget _courtPhotoPicker() {
-    final photoBytes = _courtPhotoBytes;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          _tr('Court photo', 'صورة حجز الملعب'),
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 8),
-        if (photoBytes == null)
-          OutlinedButton.icon(
-            onPressed: _pickCourtPhoto,
-            icon: const Icon(Icons.add_photo_alternate_outlined),
-            label: Text(_tr('Upload court photo', 'رفع صورة الحجز')),
-          )
-        else
-          ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Stack(
-              children: [
-                AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Image.memory(photoBytes, fit: BoxFit.cover),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Row(
-                    children: [
-                      FilledButton.tonalIcon(
-                        onPressed: _pickCourtPhoto,
-                        icon: const Icon(Icons.swap_horiz, size: 18),
-                        label: Text(_tr('Change', 'تغيير')),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton.filledTonal(
-                        tooltip: _tr('Remove photo', 'إزالة الصورة'),
-                        onPressed: () =>
-                            setState(() => _courtPhotoBytes = null),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 

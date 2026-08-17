@@ -1866,6 +1866,73 @@ class PadelAppController extends ChangeNotifier {
       }
     }
 
+    return _createLocalTargetedGame(
+      title: title,
+      area: area,
+      startTime: startTime,
+      scope: scope,
+      targetIds: targetIds,
+      skillLevel: skillLevel,
+      hostSide: hostSide,
+      courtPhotoData: courtPhotoData,
+      localTimeOptions: localTimeOptions,
+    );
+  }
+
+  Future<CreatedGameResult> createTargetedGameFromForm({
+    required String title,
+    required String area,
+    required DateTime startTime,
+    bool isScheduledGame = false,
+    List<DateTime> timeOptions = const [],
+    required String targetKey,
+    List<String> selectedUserIds = const [],
+    SkillLevel skillLevel = SkillLevel.intermediate,
+    String hostSide = 'left',
+  }) async {
+    final scope = parseTargetScopeKey(targetKey);
+    try {
+      return await createTargetedGame(
+        title: title,
+        area: area,
+        startTime: startTime,
+        isScheduledGame: isScheduledGame,
+        timeOptions: timeOptions,
+        scope: scope,
+        selectedUserIds: selectedUserIds,
+        skillLevel: skillLevel,
+        hostSide: hostSide,
+      );
+    } catch (error) {
+      debugPrint('Create targeted game fallback used: $error');
+      return _createLocalTargetedGame(
+        title: title,
+        area: area,
+        startTime: startTime,
+        scope: scope,
+        targetIds: _targetIdsForScope(scope, selectedUserIds).toSet(),
+        skillLevel: skillLevel,
+        hostSide: hostSide,
+        localTimeOptions: isScheduledGame
+            ? _buildLocalTimeOptions(startTime, timeOptions)
+            : const <MatchTimeOption>[],
+      );
+    }
+  }
+
+  Future<CreatedGameResult> _createLocalTargetedGame({
+    required String title,
+    required String area,
+    required DateTime startTime,
+    required MatchTargetScope scope,
+    required Set<String> targetIds,
+    required SkillLevel skillLevel,
+    required String hostSide,
+    String? courtPhotoData,
+    List<MatchTimeOption> localTimeOptions = const [],
+  }) async {
+    final me = _currentUser;
+    final isPublic = scope == MatchTargetScope.publicGame;
     final matchId = 'm${DateTime.now().microsecondsSinceEpoch}';
     final inviteCode = _buildInviteCode();
 
