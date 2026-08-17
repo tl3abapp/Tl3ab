@@ -128,7 +128,7 @@ export class MatchesService {
 
     const skillMin = Math.min(dto.skillMin ?? 1, dto.skillMax ?? 10);
     const skillMax = Math.max(dto.skillMin ?? 1, dto.skillMax ?? 10);
-    const inviteCode = dto.isPrivate ? this.buildInviteCode() : null;
+    const inviteCode = this.buildInviteCode();
 
     const match = this.matchesRepo.create({
       hostId: dto.hostId,
@@ -144,19 +144,15 @@ export class MatchesService {
       skillMin,
       skillMax,
       inviteCode,
-      inviteLink: inviteCode
-        ? `https://padelconnect.app/join?m=temp&code=${inviteCode}`
-        : null,
+      inviteLink: `https://www.til3b.com/join?m=temp&code=${inviteCode}`,
       status: 'open',
       targetScope: dto.targetScope ?? (dto.isPrivate ? 'friends' : 'public'),
     });
 
     const created = await this.matchesRepo.save(match);
 
-    if (created.inviteCode) {
-      created.inviteLink = `https://padelconnect.app/join?m=${created.id}&code=${created.inviteCode}`;
-      await this.matchesRepo.save(created);
-    }
+    created.inviteLink = `https://www.til3b.com/join?m=${created.id}&code=${created.inviteCode}`;
+    await this.matchesRepo.save(created);
 
     await this.participantsRepo.save(
       this.participantsRepo.create({
@@ -367,11 +363,11 @@ export class MatchesService {
     match.targetScope =
       dto.targetScope ?? (dto.isPrivate ? 'friends' : 'public');
 
-    if (dto.isPrivate && !match.inviteCode) {
+    if (!match.inviteCode) {
       match.inviteCode = this.buildInviteCode();
     }
     match.inviteLink = match.inviteCode
-      ? `https://padelconnect.app/join?m=${match.id}&code=${match.inviteCode}`
+      ? `https://www.til3b.com/join?m=${match.id}&code=${match.inviteCode}`
       : null;
 
     const saved = await this.matchesRepo.save(match);
