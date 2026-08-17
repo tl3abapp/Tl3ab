@@ -438,13 +438,22 @@ class _HomePageState extends State<HomePage> {
                           ),
                         );
                         if (created != null && context.mounted) {
-                          final match = created.match;
-                          final inviteLink = match.inviteLink?.toString() ?? '';
-                          _showCreatedGameActions(
-                            context,
-                            match.title.toString(),
-                            inviteLink,
-                          );
+                          try {
+                            final match = created.match;
+                            final inviteLink =
+                                match.inviteLink?.toString() ?? '';
+                            _showCreatedGameActions(
+                              context,
+                              match.title.toString(),
+                              inviteLink,
+                            );
+                          } catch (_) {
+                            _showCreatedGameActions(
+                              context,
+                              tr('Game created', 'تم إنشاء المباراة'),
+                              '',
+                            );
+                          }
                         }
                       },
                     ),

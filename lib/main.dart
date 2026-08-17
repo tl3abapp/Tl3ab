@@ -1920,6 +1920,32 @@ class PadelAppController extends ChangeNotifier {
     }
   }
 
+  Future<CreatedGameResult> createOfflineGameFromForm({
+    required String title,
+    required String area,
+    required DateTime startTime,
+    bool isScheduledGame = false,
+    List<DateTime> timeOptions = const [],
+    required String targetKey,
+    List<String> selectedUserIds = const [],
+    SkillLevel skillLevel = SkillLevel.intermediate,
+    String hostSide = 'left',
+  }) {
+    final scope = parseTargetScopeKey(targetKey);
+    return _createLocalTargetedGame(
+      title: title,
+      area: area,
+      startTime: startTime,
+      scope: scope,
+      targetIds: _targetIdsForScope(scope, selectedUserIds).toSet(),
+      skillLevel: skillLevel,
+      hostSide: hostSide,
+      localTimeOptions: isScheduledGame
+          ? _buildLocalTimeOptions(startTime, timeOptions)
+          : const <MatchTimeOption>[],
+    );
+  }
+
   Future<CreatedGameResult> _createLocalTargetedGame({
     required String title,
     required String area,

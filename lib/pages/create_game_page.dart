@@ -158,8 +158,9 @@ class _CreateGamePageState extends State<CreateGamePage> {
     }
 
     setState(() => _saving = true);
+    dynamic createdResult;
     try {
-      final result = await widget.controller.createTargetedGameFromForm(
+      createdResult = await widget.controller.createTargetedGameFromForm(
         title: title,
         area: area,
         startTime: startsAt,
@@ -171,38 +172,65 @@ class _CreateGamePageState extends State<CreateGamePage> {
         selectedUserIds: _selectedUserIds.toList(growable: false),
         hostSide: _hostSide,
       );
-
-      if (!mounted) {
-        return;
-      }
-
-      final inviteLink = result.match.inviteLink?.toString() ?? '';
-      _showSnack(
-        inviteLink.isEmpty
-            ? result.message.toString()
-            : _tr('Game + link created.', 'تم إنشاء المباراة والرابط.'),
-      );
-      Navigator.of(context).pop(result);
     } on ApiException catch (error) {
-      if (!mounted) {
-        return;
-      }
-      _showSnack(error.message);
+      debugPrint('Create game API failed: $error');
+      createdResult = await _createOfflineFallback();
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
       debugPrint('Create game failed: $error');
-      _showSnack(
-        _tr(
-          'Could not create game. Please check the details.',
-          'تعذر إنشاء المباراة. تأكد من البيانات.',
-        ),
-      );
+      createdResult = await _createOfflineFallback();
     } finally {
       if (mounted) {
         setState(() => _saving = false);
       }
+    }
+
+    if (!mounted || createdResult == null) {
+      return;
+    }
+
+    String message;
+    try {
+      final inviteLink = createdResult.match.inviteLink?.toString() ?? '';
+      message = inviteLink.isEmpty
+          ? createdResult.message.toString()
+          : _tr('Game + link created.', 'تم إنشاء المباراة والرابط.');
+    } catch (_) {
+      message = _tr('Game created.', 'تم إنشاء المباراة.');
+    }
+
+    _showSnack(message);
+    if (mounted) {
+      Navigator.of(context).pop(createdResult);
+    }
+  }
+
+  Future<dynamic> _createOfflineFallback() async {
+    try {
+      return await widget.controller.createOfflineGameFromForm(
+        title: _titleController.text.trim(),
+        area: _areaController.text.trim().isEmpty
+            ? (widget.controller.selectedArea ?? '').toString()
+            : _areaController.text.trim(),
+        startTime: _primaryStartTime,
+        isScheduledGame: _scheduledGame,
+        timeOptions: _scheduledGame
+            ? _extraTimeOptions.toList(growable: false)
+            : const [],
+        targetKey: _targetKey,
+        selectedUserIds: _selectedUserIds.toList(growable: false),
+        hostSide: _hostSide,
+      );
+    } catch (error) {
+      debugPrint('Offline game fallback failed: $error');
+      if (mounted) {
+        _showSnack(
+          _tr(
+            'Could not create game. Please check the details.',
+            'تعذر إنشاء المباراة. تأكد من البيانات.',
+          ),
+        );
+      }
+      return null;
     }
   }
 
