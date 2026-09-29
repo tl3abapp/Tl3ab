@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const green = Color(0xFF0A7A47);
   static const lime = Color(0xFFB7FF3C);
+  static const createAction = Color(0xFFFFC247);
+  static const createActionDark = Color(0xFF3A2800);
   static const bg = Color(0xFFF2F6F4);
   static const card = Colors.white;
   static const text = Color(0xFF0B1F17);

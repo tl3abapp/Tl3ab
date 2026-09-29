@@ -71,6 +71,27 @@ class _HomePageState extends State<HomePage> {
     await Share.share(text, sharePositionOrigin: _sharePositionOrigin(context));
   }
 
+  Future<void> _openCreateGame(BuildContext context) async {
+    final dynamic created = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CreateGamePage(controller: controller)),
+    );
+    if (created != null && context.mounted) {
+      try {
+        final match = created.match;
+        final inviteLink = _inviteLinkForMatch(match);
+        _showCreatedGameActions(context, match.title.toString(), inviteLink);
+      } catch (_) {
+        final languageCode = controller.generalSettings.languageCode.toString();
+        _showCreatedGameActions(
+          context,
+          appText(languageCode, 'Game created', 'تم إنشاء المباراة'),
+          '',
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final userName = (controller.currentUser?.name ?? 'Player').toString();
@@ -83,6 +104,7 @@ class _HomePageState extends State<HomePage> {
         0;
     final languageCode = controller.generalSettings.languageCode.toString();
     final appTitle = brandTitleForLanguage(languageCode);
+    final showCreateGameLabel = MediaQuery.sizeOf(context).width >= 700;
     String tr(String english, String arabic) =>
         appText(languageCode, english, arabic);
     String playersLabel(int joined, int max) => appIsArabic(languageCode)
@@ -147,6 +169,12 @@ class _HomePageState extends State<HomePage> {
                   _actionIconButton(icon: Icons.search, onTap: onOpenSearch),
                   const SizedBox(width: 6),
                   _notificationButton(unread),
+                  const SizedBox(width: 6),
+                  _createGameShortcutButton(
+                    tooltip: tr('Create game', 'إنشاء مباراة'),
+                    showLabel: showCreateGameLabel,
+                    onTap: () => _openCreateGame(context),
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -463,32 +491,7 @@ class _HomePageState extends State<HomePage> {
                         'السيركل / الأصدقاء / عام',
                       ),
                       solid: true,
-                      onTap: () async {
-                        final dynamic created = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                CreateGamePage(controller: controller),
-                          ),
-                        );
-                        if (created != null && context.mounted) {
-                          try {
-                            final match = created.match;
-                            final inviteLink = _inviteLinkForMatch(match);
-                            _showCreatedGameActions(
-                              context,
-                              match.title.toString(),
-                              inviteLink,
-                            );
-                          } catch (_) {
-                            _showCreatedGameActions(
-                              context,
-                              tr('Game created', 'تم إنشاء المباراة'),
-                              '',
-                            );
-                          }
-                        }
-                      },
+                      onTap: () => _openCreateGame(context),
                     ),
                   ),
                 ],
@@ -849,6 +852,61 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _createGameShortcutButton({
+    required String tooltip,
+    required bool showLabel,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      button: true,
+      label: tooltip,
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Ink(
+            height: 44,
+            padding: EdgeInsets.symmetric(horizontal: showLabel ? 13 : 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: AppColors.createAction,
+              border: Border.all(color: const Color(0xFFE3A91E)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.createAction.withValues(alpha: .28),
+                  blurRadius: 12,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.add_rounded,
+                  size: 25,
+                  color: AppColors.createActionDark,
+                ),
+                if (showLabel) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    tooltip,
+                    style: const TextStyle(
+                      color: AppColors.createActionDark,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _heroChip({required IconData icon, required String label}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
@@ -890,17 +948,17 @@ class _HomePageState extends State<HomePage> {
           borderRadius: BorderRadius.circular(18),
           gradient: solid
               ? const LinearGradient(
-                  colors: [AppColors.lime, Color(0xFF94E73D)],
+                  colors: [Color(0xFFFFD36A), AppColors.createAction],
                 )
               : null,
           color: solid ? null : Colors.white,
           border: Border.all(
-            color: solid ? const Color(0xFF94E73D) : AppColors.stroke,
+            color: solid ? const Color(0xFFE3A91E) : AppColors.stroke,
           ),
           boxShadow: [
             if (solid)
               BoxShadow(
-                color: AppColors.lime.withValues(alpha: .35),
+                color: AppColors.createAction.withValues(alpha: .30),
                 blurRadius: 16,
                 offset: const Offset(0, 8),
               ),
